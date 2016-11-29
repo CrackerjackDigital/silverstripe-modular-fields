@@ -1,0 +1,49 @@
+en:
+  Modular\Fields\Code:
+    Code:
+      Label: "Unique code"
+      Guide: "A unique code of 5 capital letters and/or numbers e.g. 'GU1DE' "
+      Placeholder: "e.g. 'PL4CE'"
+      Error: "{label} should be 5 capital letters and/or numbers e.g. '3RDEF' "
+      Format: "{label} should be 5 capital letters and/or numbers e.g. '3RFMT' "
+      Length: "{label} should be 5 capital letters and/or numbers e.g. 'ERL3N' "
+      Duplicate: "{label} should be unique, the {singular} '{title}' already uses '{code}'"
+  Modular\Fields\Duration:
+    Duration:
+      Label: 'Duration (hh:mm:ss)'
+      Guide: 'Max 10 mins.'
+  Modular\Fields\EventDate:
+    EventDate:
+      Label: 'Narrative Date'
+  Modular\Fields\Image:
+    ImageID:
+      Label: "Image"
+      Guide: "Upload image to appear on timeline"
+    AssociatedRecordsPrompt:
+      Label: '<p>{plural} can only be associated to Content or Image events</p>'
+  Modular\Fields\InternalLink:
+    InternalLinkID:
+      Label: 'Page on this site'
+      Guide: 'Choose a page on this site to link to'
+  Modular\Fields\Media:
+    EmbedCode:
+      Label: "External link"
+      Guide: "Link to another site, e.g. vimeo"
+      Placeholder: "https://vimeo.com/46589834"
+    UploadedFile:
+      Label: "Uploaded file"
+      Guide: "File upload directly to the website. Allowed extensions are ({extensions})"
+  Modular\Fields\MediaLinkType:
+    LinkType:
+      EmbedCode: "Embedded Code"
+      UploadedFile: "Uploaded File"
+      ExternalLink: "External Link"
+  Modular\Fields\Synopsis:
+      Guide: "Write a brief introduction or overview to the {singular}. This will be displayed above the content and styled differently to body copy, this will also be what shows in search results on the website."
+      Length: "{label} needs to be between {minlength} and {maxlength} characters long"
+  Modular\Fields\Title:
+    Title:
+      Label: 'Title'
+      Placeholder: "Short descriptive title for this {singular}"
+      Guide: 'Title of this {singular}'
+      Length: "{label} needs to be between {minlength} and {maxlength} characters long"
