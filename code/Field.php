@@ -1,5 +1,5 @@
 <?php
-namespace Modular\Fields;
+namespace Modular;
 
 use DateField;
 use DatetimeField;
@@ -59,7 +59,7 @@ abstract class Field extends ModelExtension {
 	public function __invoke() {
 		return $this->owner;
 	}
-	
+
 	/**
 	 * @param mixed|null $set if provided sets the value on the model for SingleFieldValue and return this, otherwise
 	 *                        returns the models SingleFieldValue.
@@ -117,6 +117,18 @@ abstract class Field extends ModelExtension {
 	}
 
 	/**
+	 * @param string $suffix appended if supplied
+	 * @return string
+	 */
+	protected static function single_field_name($suffix = '') {
+		return static::SingleFieldName ? (static::SingleFieldName . $suffix) : '';
+	}
+
+	protected static function single_field_schema() {
+		return static::SingleFieldSchema;
+	}
+
+	/**
 	 * If static.SingleFieldName && static.SingleFieldSchema are set add them to db array.
 	 *
 	 * @param null $class
@@ -124,10 +136,17 @@ abstract class Field extends ModelExtension {
 	 * @return mixed
 	 */
 	public function extraStatics($class = null, $extension = null) {
+		$fieldName = static::single_field_name();
+		$fieldSchema = static::single_field_schema();
+
+		// we want neither or both of name and schema
+		if (!in_array(count(array_filter([$fieldName, $fieldSchema])), [0, 2])) {
+			$this->debug_fail(new Exception("Can't build model '$class' as one of SingleFieldName '$fieldName' or SingleFieldSchema '$fieldSchema' is missing"));
+		}
 		return array_merge_recursive(
 			parent::extraStatics($class, $extension) ?: [],
-			(static::SingleFieldName && static::SingleFieldSchema)
-				? ['db' => [static::SingleFieldName => static::SingleFieldSchema]]
+			($fieldName && $fieldSchema)
+				? ['db' => [$fieldName => $fieldSchema]]
 				: []
 		);
 	}
@@ -223,20 +242,6 @@ abstract class Field extends ModelExtension {
 	 */
 	public function customFieldConstraints(FormField $field, array $allFieldConstraints) {
 		// default does nothing, this is mainly here for the method template when deriving classes
-	}
-
-	/**
-	 * Returns the RelationshipName for this field if set, optionally appended with the fieldName as for a relationship.
-	 *
-	 * @param string $fieldName if supplied will be added on to RelationshipName with a '.' prefix
-	 * @return string
-	 */
-	public static function relationship_name($fieldName = '') {
-		return static::RelationshipName ? (static::RelationshipName . ($fieldName ? ".$fieldName" : '')) : '';
-	}
-
-	public static function field_name($suffix = '') {
-		return static::SingleFieldName  ? (static::SingleFieldName . $suffix) : '';
 	}
 
 	/**
@@ -478,7 +483,7 @@ abstract class Field extends ModelExtension {
 		}
 		return $field;
 	}
-	
+
 	/**
 	 * @param \TimeField $field
 	 * @param bool       $showMultipleFields
@@ -493,7 +498,7 @@ abstract class Field extends ModelExtension {
 		}
 		return $field;
 	}
-	
+
 	/**
 	 * Configures the Date and Time fields in the wrapping DatetimeField.
 	 *

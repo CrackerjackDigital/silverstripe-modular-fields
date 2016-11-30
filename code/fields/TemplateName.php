@@ -1,7 +1,7 @@
 <?php
 namespace Modular\Fields;
 
-class TemplateName extends Field {
+class TemplateName extends \Modular\Field {
 	const SingleFieldName   = 'TemplateName';
 	const SingleFieldSchema = 'Varchar(255)';
 

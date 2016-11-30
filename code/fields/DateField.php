@@ -8,7 +8,7 @@ use \DatetimeField as DTField;
 /**
  * A EventDate field which is distinct from the SilverStripe 'Created' field.
  */
-class DateTimeField extends Field {
+class DateTimeField extends \Modular\Field {
 	// override for field name in implementation class
 	const SingleFieldName = '';
 	// always use SS_DateTime for dates and date-times

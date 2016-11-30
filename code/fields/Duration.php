@@ -3,7 +3,7 @@ namespace Modular\Fields;
 
 use TextField;
 
-class Duration extends Field {
+class Duration extends \Modular\Field {
 	const DurationFieldName = 'Duration';
 
 	private static $db = [

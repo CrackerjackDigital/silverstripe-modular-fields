@@ -1,7 +1,7 @@
 <?php
 namespace Modular\Fields;
 
-class HiddenSort extends Field {
+class HiddenSort extends \Modular\Field {
 	const SingleFieldName = 'Sort';
 	const SingleFieldSchema = 'Int';
 	const ReadOnly = true;

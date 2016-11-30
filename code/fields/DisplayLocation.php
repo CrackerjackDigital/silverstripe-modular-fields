@@ -3,7 +3,7 @@ namespace Modular\Fields;
 
 use OptionsetField;
 
-class DisplayLocation extends Field {
+class DisplayLocation extends \Modular\Field {
 	const DisplayLocationFieldName = 'DisplayLocation';
 	const DisplayInContent         = 'InContent';
 	const DisplayInSidebar         = 'InSidebar';

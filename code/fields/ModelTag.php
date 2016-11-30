@@ -1,10 +1,9 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\reflection;
-use URLSegmentFilter;
 use DataList;
-use Permission;
+use Modular\Field;
+use Modular\reflection;
 
 /**
  * A field which if blank takes the value of another model field mangled to be same

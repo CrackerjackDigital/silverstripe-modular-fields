@@ -1,5 +1,6 @@
 <?php
 namespace Modular\Fields;
+use Modular\Forms\TagField;
 use Modular\Relationships\HasManyMany;
 
 /**
@@ -14,7 +15,7 @@ class HasManyManyTagField extends HasManyMany {
 
 	public function cmsFields() {
 		return [
-			(new \TagField(
+			(new TagField(
 				static::RelationshipName,
 				'',
 				$this->availableTags()

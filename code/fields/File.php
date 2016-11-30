@@ -28,18 +28,8 @@ class File extends HasOne {
 
 	public function cmsFields() {
 		return [
-			$this->makeUploadField(static::field_name()),
+			$this->makeUploadField(static::single_field_name()),
 		];
-	}
-
-	/**
-	 * Files are always without ID as use UploadField which breaks convention.
-	 *
-	 * @param string $suffix
-	 * @return string
-	 */
-	public static function field_name($suffix = '') {
-		return static::RelationshipName . $suffix;
 	}
 
 	public static function allowed_files() {
@@ -49,7 +39,7 @@ class File extends HasOne {
 	public function customFieldConstraints(FormField $field, array $allFieldConstraints) {
 		$fieldName = $field->getName();
 		/** @var UploadField $field */
-		if ($fieldName == static::field_name()) {
+		if ($fieldName == static::single_field_name()) {
 			$this->configureUploadField($field, static::allowed_files());
 		}
 	}

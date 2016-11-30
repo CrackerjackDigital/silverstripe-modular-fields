@@ -43,7 +43,7 @@ class HasManyManyGridField extends HasManyMany {
 		$gridField = \GridField::create(
 			$relationshipName,
 			$relationshipName,
-			$this->owner->$relationshipName(),
+			$this()->$relationshipName(),
 			$config
 		);
 

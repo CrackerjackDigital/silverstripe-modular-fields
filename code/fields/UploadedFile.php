@@ -1,7 +1,7 @@
 <?php
 namespace Modular\Fields;
 
-abstract class UploadedFile extends Field {
+abstract class UploadedFile extends \Modular\Field {
 	const RelationshipName = '';
 	const UploadFolderName = 'uploads';
 

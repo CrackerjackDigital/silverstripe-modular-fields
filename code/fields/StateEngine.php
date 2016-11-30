@@ -98,6 +98,45 @@ abstract class StateEngineField extends EnumField {
 	}
 
 	/**
+	 * Return an array of states which are allowed to be chosen given the current state. If no current state
+	 * then the first configured state is the only option.
+	 *
+	 * @return array
+	 */
+	public function dropdownMap() {
+		$states = static::states();
+
+		// only the first configured top-level state is allowed by default if no valid next state is found.
+		$next = [key($states) => key($states)];
+
+		if ($this()->isInDB()) {
+			if ($current = $this()->{static::single_field_name()}) {
+				if (array_key_exists($current, $states)) {
+					// create a map with next states as key and value
+					$next = array_combine(
+						$states[ $current ],
+						$states[ $current ]
+					);
+				} else {
+					// something went wrong, set state to show invalid with no value
+					$next = [
+						'' => 'INVALID'
+					];
+				}
+			}
+		}
+		// now see if we can replace the values with lang strings
+		$next = array_map(
+			function($state) {
+				return _t(get_class() . ".$state", $state);
+			},
+			$next
+		);
+		return $next;
+
+	}
+
+	/**
 	 * Adds <ClassName>StateUpdated field as SS_DateTime.
 	 *
 	 * @param null $class
@@ -105,7 +144,8 @@ abstract class StateEngineField extends EnumField {
 	 * @return array
 	 */
 	public function extraStatics($class = null, $extension = null) {
-		return array_merge_recursive(parent::extraStatics($class, $extension), [
+		return array_merge_recursive(
+			parent::extraStatics($class, $extension), [
 			'db'      => [
 				static::updated_date_field_name() => 'SS_DateTime',
 			],
@@ -114,6 +154,25 @@ abstract class StateEngineField extends EnumField {
 			],
 
 		]);
+	}
+
+	public static function options() {
+		$states = array_keys(static::states()) ?: [];
+		return array_combine(
+			$states,
+			$states
+		);
+	}
+
+	/**
+	 * Return configured states, could be overridden to make dynamic.
+	 * Also see canChangeState method for alternative hook for custom logic.
+	 *
+	 * @param string $event either StateChanging or StateChanged.
+	 * @return array
+	 */
+	public static function states($event = '') {
+		return static::config()->get('states') ?: [];
 	}
 
 	/**
@@ -130,49 +189,25 @@ abstract class StateEngineField extends EnumField {
 	}
 
 	public static function updated_date_field_name() {
-		return parent::field_name() . static::UpdatedDateFieldPostfix;
+		return parent::single_field_name(static::UpdatedDateFieldPostfix);
 	}
 
 	public static function watcher_email_field_name() {
-		return parent::field_name() . static::WatcherEmailPostfix;
+		return parent::single_field_name(static::WatcherEmailPostfix);
 	}
 
 	public static function updated_by_field_name($suffix = '') {
 		$postfix = substr(static::UpdatedByFieldPostfix, -2) == 'ID' ? static::UpdatedByFieldPostfix
 			: (static::UpdatedByFieldPostfix . 'ID');
 
-		return parent::field_name($postfix . $suffix);
+		return parent::single_field_name($postfix . $suffix);
 	}
 
 	public static function initiated_by_field_name($suffix = '') {
 		$postfix = substr(static::InitiatedByFieldPostfix, -2) == 'ID' ? static::InitiatedByFieldPostfix
 			: (static::InitiatedByFieldPostfix . 'ID');
 
-		return parent::field_name($postfix . $suffix);
-	}
-
-	public function dropdownMap() {
-		$options = static::options();
-
-		if ($this()->isInDB()) {
-			$current = $this()->{static::field_name()};
-			if (array_key_exists($current, $options)) {
-				return $options[ $current ];
-			}
-		} else {
-			return current($options);
-		}
-	}
-
-	/**
-	 * Return configured states, could be overridden to make dynamic.
-	 * Also see canChangeState method for alternative hook for custom logic.
-	 *
-	 * @param string $event either StateChanging or StateChanged.
-	 * @return array
-	 */
-	public function states($event = '') {
-		return $this->config()->get('states') ?: [];
+		return parent::single_field_name($postfix . $suffix);
 	}
 
 	/**
@@ -182,7 +217,7 @@ abstract class StateEngineField extends EnumField {
 	 */
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
-		$stateFieldName = static::field_name();
+		$stateFieldName = static::single_field_name();
 
 		if (!$this()->isInDB()) {
 			if (!$this()->{static::initiated_by_field_name()}) {
@@ -217,7 +252,7 @@ abstract class StateEngineField extends EnumField {
 	 */
 	public function onAfterWrite() {
 		if ($from = $this()->_PreviousState) {
-			$this->checkStateChange(self::StateChanged, $from, $this()->{static::field_name()});
+			$this->checkStateChange(self::StateChanged, $from, $this()->{static::single_field_name()});
 		}
 	}
 
@@ -359,7 +394,7 @@ abstract class StateEngineField extends EnumField {
 	 * @throws \ValidationException
 	 */
 	public function validate(\ValidationResult $result) {
-		$fieldName = static::field_name();
+		$fieldName = static::single_field_name();
 
 		if ($this()->isChanged($fieldName)) {
 			$states = static::config()->get('states');
@@ -368,7 +403,7 @@ abstract class StateEngineField extends EnumField {
 			$original = $this()->getChangedFields()[ $fieldName ]['before'];
 
 			if (!in_array($new, $states[ $original ])) {
-				$result->error(_t(static::field_name() . '.InvalidTransition', "Can't go from state '$original' to '$new'"));
+				$result->error(_t(static::single_field_name() . '.InvalidTransition', "Can't go from state '$original' to '$new'"));
 			}
 		}
 

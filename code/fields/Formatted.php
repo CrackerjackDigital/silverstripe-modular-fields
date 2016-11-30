@@ -5,6 +5,6 @@ namespace Modular\Fields;
  *
  * @package Modular\Fields
  */
-class Formatted extends Field {
+class Formatted extends \Modular\Field {
 	const SingleFieldSchema = 'Varchar(32)';
 }
