@@ -156,8 +156,9 @@ abstract class StateEngineField extends EnumField {
 
 		if ($this()->isInDB()) {
 			$current = $this()->{static::field_name()};
-
-			return $options[ $current ];
+			if (array_key_exists($current, $options)) {
+				return $options[ $current ];
+			}
 		} else {
 			return current($options);
 		}
