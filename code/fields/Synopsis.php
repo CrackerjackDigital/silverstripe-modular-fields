@@ -3,15 +3,13 @@ namespace Modular\Fields;
 
 use \HtmlEditorField;
 
-class Synopsis extends \Modular\Field {
-	const FieldName = 'Synopsis';
+class Description extends \Modular\Field {
+	const SingleFieldName = 'Description';
+	const SingleFieldSchema = 'HTMLText';
 
-	private static $db = [
-		self::FieldName => 'HTMLText',
-	];
 	public function cmsFields() {
 		return [
-			HtmlEditorField::create('Synopsis', 'Synopsis')->setRows(5),
+			HtmlEditorField::create(static::single_field_name(), 'Description')->setRows(5),
 		];
 	}
 }
