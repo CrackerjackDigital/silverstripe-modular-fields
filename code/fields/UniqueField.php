@@ -4,6 +4,24 @@ namespace Modular\Fields;
 use Modular\Model;
 
 class UniqueField extends \Modular\Field {
+	/**
+	 * A unique field should have an index, however it isn't a unique index as e.g. the field
+	 * may only be unique at one level of a heirarchy.
+	 *
+	 * @param null $class
+	 * @param null $extension
+	 * @return array
+	 */
+	public function extraStatics($class = null, $extension = null) {
+		return array_merge(
+			parent::extraStatics($class, $extension) ?: [],
+			[
+				'indexes' => [
+					static::SingleFieldName => true
+				]
+			]
+		);
+	}
 
 	/**
 	 * Prevent duplicate code being entered.
