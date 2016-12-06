@@ -115,8 +115,14 @@ abstract class Field extends ModelExtension {
 		$fieldName = static::single_field_name();
 
 		if ($this()->isChanged($fieldName)) {
-			$previousFieldName = static::previous_field_name();
-			$this()->{$previousFieldName} = $this()->getChangedFields()[$fieldName]['before'];
+			if ($previousFieldName = static::previous_field_name()) {
+				$changed = $this()->getChangedFields();
+				if (array_key_exists($fieldName, $changed)) {
+					if (array_key_exists('before', $changed[$fieldName])) {
+						$this()->{$previousFieldName} = $changed[$fieldName]['before'];
+					}
+				}
+			}
 		}
 	}
 
@@ -158,11 +164,11 @@ abstract class Field extends ModelExtension {
 	 * @param string $suffix appended if supplied
 	 * @return string
 	 */
-	protected static function single_field_name($suffix = '') {
+	public static function single_field_name($suffix = '') {
 		return static::SingleFieldName ? (static::SingleFieldName . $suffix) : '';
 	}
 
-	protected static function single_field_schema() {
+	public static function single_field_schema() {
 		return static::SingleFieldSchema;
 	}
 

@@ -1,11 +1,11 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\GridField\GridFieldConfig;
+use DataObject;
+use GridField;
+use Modular\GridField\Components\GridFieldOrderableRows;
+use Modular\GridField\Configs\GridFieldConfig;
 use Modular\Relationships\HasManyMany;
-use Quaff\Controllers\Model;
-
-use Modular\GridField\GridFieldOrderableRows;
 
 class HasManyManyGridField extends HasManyMany {
 	const GridFieldConfigName = 'Modular\GridField\HasManyManyGridFieldConfig';
@@ -31,11 +31,21 @@ class HasManyManyGridField extends HasManyMany {
 	 *
 	 * @param string|null $relationshipName
 	 * @param string|null $configClassName name of grid field configuration class otherwise one is manufactured
-	 * @return \GridField
+	 * @return GridField
 	 */
 	protected function gridField($relationshipName = null, $configClassName = null) {
 		$relationshipName = $relationshipName
-			?: static::RelationshipName;
+			?: static::relationship_name();
+
+		if (!$relationshipName) {
+			if ($relatedClassName = static::related_class_name()) {
+				$related = DataObject::get();
+			} else {
+				$related = \ArrayList::create();
+			}
+		} else {
+			$related = $this()->$relationshipName();
+		}
 
 		$config = $this->gridFieldConfig($relationshipName, $configClassName);
 
@@ -43,7 +53,7 @@ class HasManyManyGridField extends HasManyMany {
 		$gridField = \GridField::create(
 			$relationshipName,
 			$relationshipName,
-			$this()->$relationshipName(),
+			$related,
 			$config
 		);
 
@@ -65,19 +75,19 @@ class HasManyManyGridField extends HasManyMany {
 	 * @return GridFieldConfig
 	 */
 	protected function gridFieldConfig($relationshipName, $configClassName) {
+		$relationshipName = $relationshipName ?: static::relationship_name();
+
 		$configClassName = $configClassName
 			?: static::GridFieldConfigName
 				?: get_class($this) . 'GridFieldConfig';
 
 		/** @var GridFieldConfig $config */
 		$config = $configClassName::create();
-		$config->setSearchPlaceholder(
 
-			singleton(static::RelatedClassName)->fieldDecoration(
-				static::RelationshipName,
-				'SearchPlaceholder',
-				"Link existing {plural} by Title"
-			)
+		$relatedClassName = static::related_class_name() ?: $relationshipName;
+
+		$config->setSearchPlaceholder(
+			\Config::inst()->get("$relatedClassName.SearchPlaceHolder", "Link existing by Title")
 		);
 		return $config;
 	}

@@ -5,8 +5,18 @@ use Modular\Model;
 
 class UniqueField extends \Modular\Field {
 	/**
+	 * Always a ReadonlyField
+	 * @return array
+	 */
+	public function cmsFields() {
+		return [
+			new \ReadonlyField(static::SingleFieldName)
+		];
+	}
+
+	/**
 	 * A unique field should have an index, however it isn't a unique index as e.g. the field
-	 * may only be unique at one level of a heirarchy.
+	 * may only be unique at one level of a heirarchy or across model classes.
 	 *
 	 * @param null $class
 	 * @param null $extension
