@@ -33,6 +33,9 @@ use ValidationResult;
 abstract class Field extends ModelExtension {
 	use lang;
 
+	// used to generate a field name for tracking changes in this fields value in onAfterWrite
+	const PreviousFieldNamePrefix = '__';
+
 	// if SingleFieldName and SingleFieldSchema are provided then they will be added to the
 	// config.db array by extraStatics
 	const SingleFieldName   = '';
@@ -50,6 +53,9 @@ abstract class Field extends ModelExtension {
 	private static $time_field_format = '';
 
 	private static $cms_tab_name = '';
+
+	// only show this field if the user is an admin
+	private static $admin_only = false;
 
 	/**
 	 * If we use invocation we can type-cast the result to a ModularModel
@@ -69,14 +75,15 @@ abstract class Field extends ModelExtension {
 	 * @fluent-setter
 	 */
 	public function singleFieldValue($set = null) {
-		if (!static::SingleFieldName) {
+		$name = static::single_field_name();
+		if (!$name) {
 			throw new Exception("Called singleFieldValue() with no SingleFieldName set");
 		}
 		if (func_num_args()) {
-			$this()->{static::SingleFieldName} = $set;
+			$this()->{$name} = $set;
 			return $this;
 		} else {
-			return $this()->{static::SingleFieldName};
+			return $this()->{$name};
 		}
 	}
 
@@ -99,6 +106,37 @@ abstract class Field extends ModelExtension {
 			}
 		}
 		return $fields;
+	}
+	/*
+	 * Make the value of this field available in onAfterWrite as it was before any updates
+	 */
+	public function onBeforeWrite() {
+		parent::onBeforeWrite();
+		$fieldName = static::single_field_name();
+
+		if ($this()->isChanged($fieldName)) {
+			$previousFieldName = static::previous_field_name();
+			$this()->{$previousFieldName} = $this()->getChangedFields()[$fieldName]['before'];
+		}
+	}
+
+	/**
+	 * Returns the value of a field before any updates to it.
+	 *
+	 * @param null $previousValue
+	 * @return bool
+	 */
+	public function previousValue(&$previousValue = null) {
+		$previousFieldName = static::previous_field_name();
+		if (array_key_exists($previousFieldName, $this())) {
+			$previousValue = $this()->{$previousFieldName};
+			return true;
+		}
+		return false;
+	}
+
+	protected static function previous_field_name() {
+		return static::PreviousFieldNamePrefix . static::single_field_name();
 	}
 
 	/**
@@ -136,15 +174,20 @@ abstract class Field extends ModelExtension {
 	 * @return mixed
 	 */
 	public function extraStatics($class = null, $extension = null) {
-		$fieldName = static::single_field_name();
-		$fieldSchema = static::single_field_schema();
+		$parent = parent::extraStatics($class, $extension) ?: [];
+
+		if ($fieldName = static::single_field_name()) {
+			$fieldSchema = isset($parent[ $fieldName ]) ? $parent[ $fieldName ] : static::single_field_schema();
+		} else {
+			$fieldSchema = static::single_field_schema();
+		}
 
 		// we want neither or both of name and schema
 		if (!in_array(count(array_filter([$fieldName, $fieldSchema])), [0, 2])) {
-			$this->debug_fail(new Exception("Can't build model '$class' as one of SingleFieldName '$fieldName' or SingleFieldSchema '$fieldSchema' is missing"));
+			$this->debug_fail(new Exception("Can't add model field to '$class.$extension' as one of SingleFieldName '$fieldName' or SingleFieldSchema '$fieldSchema' is missing"));
 		}
 		return array_merge_recursive(
-			parent::extraStatics($class, $extension) ?: [],
+			$parent,
 			($fieldName && $fieldSchema)
 				? ['db' => [$fieldName => $fieldSchema]]
 				: []
@@ -169,12 +212,22 @@ abstract class Field extends ModelExtension {
 	}
 
 	/**
+	 * By default checks the config.admin_only and admin permissions to see if field should be shown.
+	 */
+	public function shouldShow() {
+		return $this()->config()->get('admin_only') ? \Permission::check('ADMIN') : true;
+	}
+
+	/**
 	 * Update form fields to have:
 	 *  label, guide and description from lang.yml
 	 *  minlength, maxlength and pattern from config.validation
 	 *
 	 */
 	public function updateCMSFields(FieldList $fields) {
+		if ($this->shouldShow()) {
+			return;
+		}
 		$allFieldsConstraints = $this->config()->get(static::ValidationRulesConfigVarName) ?: [];
 
 		if ($cmsFields = $this->cmsFields()) {

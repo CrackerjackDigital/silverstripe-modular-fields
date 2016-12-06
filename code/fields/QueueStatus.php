@@ -50,6 +50,17 @@ class QueueStatus extends StateEngineField {
 			self::StatusQueued,
 		],
 	];
+	// for Enum list out available options
+	private static $options = [
+		self::StatusQueued     ,
+		self::StatusScheduled  ,
+		self::StatusProcessing ,
+		self::StatusCompleted  ,
+		self::StatusFailed     ,
+		self::StatusPaused     ,
+		self::StatusHeld       ,
+		self::StatusCancelled  ,
+	];
 
 	private static $notify_on_state_events = [
 		'*' => [

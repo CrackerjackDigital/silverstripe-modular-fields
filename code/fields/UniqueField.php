@@ -13,7 +13,7 @@ class UniqueField extends \Modular\Field {
 	 * @return array
 	 */
 	public function extraStatics($class = null, $extension = null) {
-		return array_merge(
+		return array_merge_recursive(
 			parent::extraStatics($class, $extension) ?: [],
 			[
 				'indexes' => [

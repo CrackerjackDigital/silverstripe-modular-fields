@@ -1,6 +1,7 @@
 <?php
 namespace Modular\Fields;
 
+use Modular\Application;
 use Modular\bitfield;
 use Modular\debugging;
 use Modular\Exceptions\Exception;
@@ -12,7 +13,7 @@ use Modular\emailer;
  *
  * @package Modular\Fields
  */
-abstract class StateEngineField extends EnumField {
+abstract class StateEngineField extends Enum {
 	use emailer;
 	use debugging;
 	use bitfield;
@@ -41,12 +42,14 @@ abstract class StateEngineField extends EnumField {
 	// the extended model as config state_engine_watcher_email for model level granularity)
 	private static $watcher_email = '';
 
+	private static $show_as = self::ShowAsDropdown;
+
 	/**
 	 * Array of states to array of valid 'next' states.
 	 *
 	 * @var array
 	 */
-	private static $states = [
+	private static $options = [
 		#   self::State1 => [
 		#       self::State2,
 		#       self::State4,
@@ -98,24 +101,38 @@ abstract class StateEngineField extends EnumField {
 	}
 
 	/**
+	 * Return configured default_value or key of first option.
+	 * @return mixed
+	 */
+	public static function default_value() {
+		return parent::default_value() ?: key(static::options());
+	}
+
+	/**
 	 * Return an array of states which are allowed to be chosen given the current state. If no current state
 	 * then the first configured state is the only option.
 	 *
 	 * @return array
 	 */
-	public function dropdownMap() {
-		$states = static::states();
+	public function optionMap() {
+		$options = static::options(
+			null,
+			array_combine(
+				array_keys(static::config()->get('options')),
+				array_keys(static::config()->get('options'))
+			)
+		);
 
 		// only the first configured top-level state is allowed by default if no valid next state is found.
-		$next = [key($states) => key($states)];
+		$next = [key($options) => key($options)];
 
 		if ($this()->isInDB()) {
 			if ($current = $this()->{static::single_field_name()}) {
-				if (array_key_exists($current, $states)) {
-					// create a map with next states as key and value
+				if (array_key_exists($current, $options)) {
+					// create a map with next options as key and value
 					$next = array_combine(
-						$states[ $current ],
-						$states[ $current ]
+						$options[ $current ],
+						$options[ $current ]
 					);
 				} else {
 					// something went wrong, set state to show invalid with no value
@@ -133,7 +150,6 @@ abstract class StateEngineField extends EnumField {
 			$next
 		);
 		return $next;
-
 	}
 
 	/**
@@ -145,34 +161,16 @@ abstract class StateEngineField extends EnumField {
 	 */
 	public function extraStatics($class = null, $extension = null) {
 		return array_merge_recursive(
-			parent::extraStatics($class, $extension), [
-			'db'      => [
-				static::updated_date_field_name() => 'SS_DateTime',
-			],
-			'has_one' => [
-				static::updated_by_field_name() => 'Member',
-			],
-
-		]);
-	}
-
-	public static function options() {
-		$states = array_keys(static::states()) ?: [];
-		return array_combine(
-			$states,
-			$states
+			parent::extraStatics($class, $extension) ?: [],
+			[
+				'db'      => [
+					static::updated_date_field_name() => 'SS_DateTime',
+				],
+				'has_one' => [
+					static::updated_by_field_name() => 'Member',
+				],
+			]
 		);
-	}
-
-	/**
-	 * Return configured states, could be overridden to make dynamic.
-	 * Also see canChangeState method for alternative hook for custom logic.
-	 *
-	 * @param string $event either StateChanging or StateChanged.
-	 * @return array
-	 */
-	public static function states($event = '') {
-		return static::config()->get('states') ?: [];
 	}
 
 	/**
@@ -204,7 +202,8 @@ abstract class StateEngineField extends EnumField {
 	}
 
 	public static function initiated_by_field_name($suffix = '') {
-		$postfix = substr(static::InitiatedByFieldPostfix, -2) == 'ID' ? static::InitiatedByFieldPostfix
+		$postfix = substr(static::InitiatedByFieldPostfix, -2) == 'ID'
+			? static::InitiatedByFieldPostfix
 			: (static::InitiatedByFieldPostfix . 'ID');
 
 		return parent::single_field_name($postfix . $suffix);
@@ -217,31 +216,27 @@ abstract class StateEngineField extends EnumField {
 	 */
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
-		$stateFieldName = static::single_field_name();
+		$fieldName = static::single_field_name();
 
-		if (!$this()->isInDB()) {
-			if (!$this()->{static::initiated_by_field_name()}) {
-				$this()->{static::initiated_by_field_name()} = \Member::currentUserID();
-			}
-		} else {
-			$this()->{static::updated_by_field_name()} = \Member::currentUserID();
+		// previous value would have been set in parent onBeforeWrite method if there was one.
+		if ($this->previousValue($previousValue)) {
+			// this checks if state can change, will throw an exception if not
+			$this->checkStateChange(self::StateChanging, $previousValue, $this()->{$fieldName});
 		}
-
-		if (!$this()->isInDB() && !$this()->{$stateFieldName}) {
-			// set initial state to first state if a new record and not already provided
-			$this()->{$stateFieldName} = key($this->options());
-		} else {
-			if ($this()->isChanged($stateFieldName)) {
-
-				$from = $this()->getChangedFields()[ $stateFieldName ]['before'];
-
-				$this()->_PreviousState = $from;
-
-				// this checks if state can change, will throw an exception if not
-				if (!$this->checkStateChange(self::StateChanging, $from, $this()->{$stateFieldName})) {
-					$this->debug_fail(new Exception("Aborting state change"));
-				}
+		if (!$this()->isInDB()) {
+			// if no value is set then set to a default
+			if (!$this()->hasValue($fieldName)) {
+				$this()->{$fieldName} = static::default_value();
 			}
+			if (!$this()->{static::initiated_by_field_name()}) {
+				// set the initiator to the current logged in Member or system admin e.g. for cli
+				$member = \Member::currentUser() ?: Application::system_admin();
+				$this()->{static::initiated_by_field_name()} = $member->ID;
+			}
+		} else {
+			// set the updater to the current logged in Member or system admin e.g. for cli
+			$member = \Member::currentUser() ?: Application::system_admin();
+			$this()->{static::updated_by_field_name()} = $member->ID;
 		}
 	}
 
@@ -251,8 +246,10 @@ abstract class StateEngineField extends EnumField {
 	 * @throws Exception
 	 */
 	public function onAfterWrite() {
-		if ($from = $this()->_PreviousState) {
-			$this->checkStateChange(self::StateChanged, $from, $this()->{static::single_field_name()});
+		parent::onAfterWrite();
+		if ($this->previousValue($previousValue)) {
+			// will throw an exception if can't do it
+			$this->checkStateChange(self::StateChanged, $previousValue, $this()->{static::single_field_name()});
 		}
 	}
 
@@ -272,7 +269,7 @@ abstract class StateEngineField extends EnumField {
 		// check model extensions accept the state change
 		$checkResults = $this()->invokeWithExtensions(static::StateChangeEventName, $event, $fieldName, $fromState, $toState) ?: [];
 
-		$states = $this->states($event);
+		$states = $this->options();
 
 		// check we have the 'from' state
 		$checkResults["Invalid from state '$fromState'"] = $transitions = array_key_exists($fromState, $toState) ? $states[ $fromState ] : false;
@@ -285,19 +282,18 @@ abstract class StateEngineField extends EnumField {
 		// check the result of canChangeState (may be overridden in implementation to perform additional checks)
 		$checkResults["canChangeState check"] = $this->canChangeState($event, $fromState, $toState);
 
-		// any false (strict checking) in results from extension call will cause a fail and so state change will not be saved
-		// any other result will be ignored and state transition will continue
-		$fail = false;
-		foreach ($checkResults as $error => $eventResult) {
-			// something returned false, we fail
-			if (!$eventResult) {
-				$modelClass = get_class($this());
-				$this->debug_error("$error for '$event' from '$fromState' to '$toState' on '$modelClass.$fieldName'");
-				$fail = true;
+		try {
+			// any false (strict checking) in results from extension call will cause a fail and so state change will not be saved
+			// any other result will be ignored and state transition will continue
+			foreach ($checkResults as $error => $eventResult) {
+				// something returned false, we fail
+				if (is_bool($eventResult) && !$eventResult) {
+					$modelClass = get_class($this());
+					throw new Exception("$error for '$event' from '$fromState' to '$toState' on '$modelClass.$fieldName'");
+				}
 			}
-		}
-		if ($fail) {
-			return false;
+		} catch (\Exception $e) {
+			$this->debug_fail($e);
 		}
 
 		if ($emails = $this->config()->get('notify_on_state_events')) {

@@ -23,11 +23,11 @@ class DateTimeField extends \Modular\Field {
 
 	public function extraStatics($class = null, $extension = null) {
 		return array_merge_recursive(
-			parent::extraStatics($class, $extension),
+			parent::extraStatics($class, $extension) ?: [],
 			[
 				'validation' => [
 					static::SingleFieldName => static::DateRequired,
-				],
+				]
 			]
 		);
 	}
