@@ -1,5 +1,5 @@
 <?php
-use modular\Fields\Flag;
+use Modular\Fields\Flag;
 
 class TestMode extends Flag  {
     const FieldName = 'TestModeFlag';
