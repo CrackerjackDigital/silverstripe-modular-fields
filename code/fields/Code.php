@@ -49,4 +49,17 @@ class Code extends UniqueField {
 		}
 	}
 
+	/**
+	 * Return passed string as an array of codes, the passed string may be an array already, a single code or a csv list of codes.
+	 *
+	 * @param array|string $codes
+	 * @return array
+	 */
+	public static function parse_codes($codes) {
+		if (!is_array($codes)) {
+			$codes = array_filter(explode(',', $codes));
+		}
+		return $codes;
+	}
+
 }
