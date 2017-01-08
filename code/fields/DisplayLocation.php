@@ -32,7 +32,7 @@ class DisplayLocation extends \Modular\Field {
 		);
 	}
 
-	public function cmsFields() {
+	public function cmsFields($mode) {
 		return [
 			new OptionsetField(self::DisplayLocationFieldName, 'Shows in', [
 				self::DisplayInContent => $this->fieldDecoration(self::DisplayLocationFieldName, self::DisplayInContent . ".Label", 'Page content'),

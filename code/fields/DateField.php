@@ -2,13 +2,15 @@
 namespace Modular\Fields;
 
 use \DateField as DField;
+use Modular\Types\DateTimeType;
+use Modular\Types\DateType;
 use \TimeField as TField;
 use \DatetimeField as DTField;
 
 /**
  * A EventDate field which is distinct from the SilverStripe 'Created' field.
  */
-class DateTimeField extends \Modular\Field {
+class DateTimeField extends \Modular\Field implements DateTimeType {
 	// override for field name in implementation class
 	const SingleFieldName = '';
 	// always use SS_DateTime for dates and date-times
@@ -30,6 +32,14 @@ class DateTimeField extends \Modular\Field {
 				]
 			]
 		);
+	}
+	
+	/**
+	 * Convenience method returns a MySQL compatible date time for 'now'
+	 * @return false|string
+	 */
+	public static function now() {
+		return date('Y-m-d h:i:s');
 	}
 
 	/**
@@ -71,14 +81,15 @@ class DateTimeField extends \Modular\Field {
 	public function updateSummaryFields(&$fields) {
 		$fields[ static::SingleFieldName ] = $this->fieldDecoration(static::SingleFieldName);
 	}
-
+	
 	/**
 	 * Returns fields for entering date and time. NB injector has overridden the TimeField to be CERATimeField to
 	 * fix a problem saving DatatimeField with no date.
 	 *
+	 * @param $mode
 	 * @return array
 	 */
-	public function cmsFields() {
+	public function cmsFields($mode) {
 		if (static::ShowTimeField) {
 			return [
 				DTField::create(

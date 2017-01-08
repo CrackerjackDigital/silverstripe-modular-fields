@@ -3,13 +3,14 @@ namespace Modular\Fields;
 
 use DataList;
 use Modular\Field;
-use Modular\reflection;
+use Modular\Traits\reflection;
+use Modular\Types\StringType;
 
 /**
  * A field which if blank takes the value of another model field mangled to be same
  * format as a URLSegment. Does not change if the source field changes, only if it is empty.
  */
-class ModelTag extends Field {
+class ModelTag extends Field implements StringType {
 	use reflection;
 
 	const SingleFieldName   = 'ModelTag';

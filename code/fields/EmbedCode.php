@@ -1,9 +1,10 @@
 <?php
 namespace Modular\Fields;
 
+use Modular\Types\StringType;
 use TextField;
 
-class EmbedCode extends \Modular\Field {
+class EmbedCode extends \Modular\Field implements StringType {
 	const EmbedCodeFieldName = 'EmbedCode';
 	const EmbedCodeOption    = 'EmbedCode';
 
@@ -11,7 +12,7 @@ class EmbedCode extends \Modular\Field {
 		self::EmbedCodeFieldName => 'Text'
 	];
 
-	public function cmsFields() {
+	public function cmsFields($mode) {
 		return [
 			new TextField(self::EmbedCodeFieldName)
 		];

@@ -1,7 +1,9 @@
 <?php
 namespace Modular\Fields;
 
-class ExternalReference extends \Modular\Field {
+use Modular\Types\StringType;
+
+class ExternalReference extends \Modular\Field implements StringType {
 	const SingleFieldName = 'ExternalReference';
 	const SingleFieldSchema = 'Varchar(8)';
 }

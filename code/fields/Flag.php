@@ -1,14 +1,15 @@
 <?php
-namespace modular\Fields;
+namespace Modular\Fields;
 
 use Modular\Field;
+use Modular\Types\BoolType;
 
 /**
  * Flag field representing a Boolean database field
  *
  * @package modular\Fields
  */
-abstract class Flag extends Options {
+abstract class Flag extends Options implements BoolType {
 	const SingleFieldSchema = 'Boolean';
 	const NoValue           = 0;
 	const YesValue          = 1;
@@ -24,7 +25,7 @@ abstract class Flag extends Options {
 		self::YesValue => 'Yes',
 	];
 
-	public function cmsFields() {
+	public function cmsFields($mode) {
 		return [
 			static::single_field_name() => $this->makeField(),
 		];

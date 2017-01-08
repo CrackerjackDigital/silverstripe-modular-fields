@@ -4,7 +4,7 @@ namespace Modular\Fields;
 use ArrayList;
 use FormField;
 use Modular\Behaviours\MediaLinkType;
-use Modular\upload;
+use Modular\Traits\upload;
 
 /**
  * HasTranscriptField
