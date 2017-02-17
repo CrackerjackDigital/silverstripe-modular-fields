@@ -1,7 +1,7 @@
 {
 	"name": "crackerjackdigital/silverstripe-modular-fields",
 	"type": "silverstripe-module",
-	"description": "Fields as extensions functionality for modular",
+	"description": "Fields as first-class citizens",
 	"homepage": "http://github.com/crackerjackdigital",
 	"license": "BSD-3-Clause",
 	"keywords": [
@@ -18,9 +18,9 @@
 		}
 	],
 	"require": {
-		"silverstripe/framework": ">=3.1",
-		"silverstripe/display-logic": "1.4.x",
-		"silverstripe-australia/gridfieldextensions": "1.x",
+		"silverstripe/framework": ">=4.0",
+		"silverstripe/display-logic": "*",
+		"silverstripe-australia/gridfieldextensions": "*",
 		"crackerjackdigital/silverstripe-modular": "*",
 		"crackerjackdigital/silverstripe-modular-fields": "*",
 		"silverstripe/tagfield": "*"
