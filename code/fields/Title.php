@@ -1,9 +1,10 @@
 <?php
 namespace Modular\Fields;
 
+use Modular\Types\StringType;
 use TextField;
 
-class Title extends \Modular\Field {
+class Title extends \Modular\Field implements StringType {
 	const SingleFieldName = 'Title';
 	const SingleFieldSchema = 'Varchar(255)';
 

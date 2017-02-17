@@ -40,7 +40,7 @@ abstract class Options extends Field  {
 	// will be used as key => value for options if RelatedClassName is set
 	private static $options_fields = ['ID', 'Title'];
 
-	public function cmsFields() {
+	public function cmsFields($mode) {
 		return [
 			$this->makeField(),
 		];

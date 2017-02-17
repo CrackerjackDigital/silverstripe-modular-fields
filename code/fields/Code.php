@@ -3,7 +3,7 @@ namespace Modular\Fields;
 
 use Config;
 use HiddenField;
-use Modular\enabler;
+use Modular\Traits\enabler;
 use Modular\Model;
 use Permission;
 use ReadonlyField;
@@ -23,7 +23,7 @@ class Code extends UniqueField {
 	const SingleFieldName   = 'Code';
 	const SingleFieldSchema = 'Varchar(5)';
 
-	public function cmsFields() {
+	public function cmsFields($mode) {
 		if ($this()->isInDB()) {
 			return [
 				new ReadonlyField(self::SingleFieldName . 'RO', 'Unique Code', $this()->{self::SingleFieldName}),

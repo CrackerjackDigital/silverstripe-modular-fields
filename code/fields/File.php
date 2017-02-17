@@ -4,10 +4,11 @@ namespace Modular\Fields;
 use FormField;
 use Modular\Relationships\HasOne;
 use Modular\Relationships\HasManyMany;
-use Modular\upload;
+use Modular\Traits\upload;
+use Modular\Types\URNType;
 use UploadField;
 
-class File extends HasOne {
+class File extends HasOne implements URNType {
 	use upload;
 
 	const RelationshipName        = 'File';
@@ -26,12 +27,12 @@ class File extends HasOne {
 	// this will be appended to 'base_upload_folder'
 	private static $upload_folder = self::DefaultUploadFolderName;
 
-	public function cmsFields() {
+	public function cmsFields($mode) {
 		return [
 			$this->makeUploadField(static::single_field_name()),
 		];
 	}
-
+	
 	public static function allowed_files() {
 		return 'allowed_files';
 	}

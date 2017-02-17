@@ -1,14 +1,15 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\enabler;
+use Modular\Fields\Flag;
+use Modular\Traits\enabler;
 
 /**
  * This extension provides a flag for data which may have 'System' significance and so
  * should generally not be returned for the user to view and/or choose, e.g. a SocialEdgeType
  * may only be useable by the system and not selectable in a dropdown.
  */
-class SystemData extends \Modular\Fields\Flag {
+class SystemData extends Flag {
 	use enabler;
 
 	const SingleFieldName= 'SystemFlag';

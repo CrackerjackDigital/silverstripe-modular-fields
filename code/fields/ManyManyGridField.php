@@ -13,13 +13,14 @@ class HasManyManyGridField extends HasManyMany {
 	private static $cms_tab_name = '';
 
 	private static $sortable = true;
-
+	
 	/**
 	 * If model is saved then a gridfield, otherwise a 'save master first' hint.
 	 *
+	 * @param $mode
 	 * @return array
 	 */
-	public function cmsFields() {
+	public function cmsFields($mode) {
 		return $this()->isInDB()
 			? [$this->gridField()]
 			: [$this->saveMasterHint()];

@@ -1,7 +1,9 @@
 <?php
 namespace Modular\Fields;
 
-class TextContent extends \Modular\Field {
+use Modular\Types\StringType;
+
+class TextContent extends \Modular\Field implements StringType {
 	const SingleFieldName   = 'TextContent';
 	const SingleFieldSchema = 'Text';
 

@@ -2,10 +2,10 @@
 namespace Modular\Fields;
 
 use Modular\Application;
-use Modular\bitfield;
-use Modular\debugging;
 use Modular\Exceptions\Exception;
-use Modular\emailer;
+use Modular\Traits\bitfield;
+use Modular\Traits\debugging;
+use Modular\Traits\emailer;
 
 /**
  * Class which only allows certain transitions for this fields values as defined by config.states. Adds a field
@@ -75,13 +75,14 @@ abstract class StateEngineField extends Enum {
 		#       self::FromState2 => self::EmailInitiator
 		#   ]
 	];
-
+	
 	/**
 	 * Adds a StateUpdated DateTime field to the model as well as the parent Enum field.
 	 *
+	 * @param $mode
 	 * @return array
 	 */
-	public function cmsFields() {
+	public function cmsFields($mode) {
 		$updatedBy = \Member::get()->byID($this()->{static::updated_by_field_name()}) ?: \Member::currentUser();
 		$updatedByName = $updatedBy
 			? ($updatedBy->FirstName . ' ' . $updatedBy->Surname . ' (' . $updatedBy->Email . ')') : 'Unknown';
@@ -92,7 +93,7 @@ abstract class StateEngineField extends Enum {
 
 		$watcherEmails = $this->watcherEmails();
 
-		return array_merge(parent::cmsFields(), [
+		return array_merge(parent::cmsFields($mode), [
 			static::updated_date_field_name()     => $this->configureDateTimeField(new \DatetimeField(static::updated_date_field_name())),
 			static::initiated_by_field_name('RO') => new \ReadonlyField(static::initiated_by_field_name('RO'), 'Initiated By', $initiatedByName),
 			static::updated_by_field_name('RO')   => new \ReadonlyField(static::updated_by_field_name('RO'), 'Updated By', $updatedByName),
@@ -341,7 +342,7 @@ abstract class StateEngineField extends Enum {
 		$initiatedBy = \Member::get()->byID($this()->{static::initiated_by_field_name()});
 		$updatedBy = \Member::get()->byID($this()->{static::updated_by_field_name()});
 
-		$sender = \Member::currentUser() ?: \Application::system_admin_email();
+		$sender = \Member::currentUser() ?: \Application::member(\Application::Admin);
 
 		$templates = [
 			implode('_', [$fieldClass, $event, $fromState, $toState]),
@@ -364,16 +365,16 @@ abstract class StateEngineField extends Enum {
 
 		if (is_numeric($actionOrRecipientEmailAddress)) {
 			// value is one of the self.EmailSystemAdmin, self.EmailAdmin etc constants
-			if ($this->bitfieldTest($actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin)) {
-				$this->emailer_send($sender, \Application::factory()->system_admin_email(), $subject, $noTemplateBody, $templates, $data);
+			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin)) {
+				$this->emailer_send($sender, \Application::factory()->find_system_admin(), $subject, $noTemplateBody, $templates, $data);
 			}
-			if ($this->bitfieldTest($actionOrRecipientEmailAddress, self::NotifyEmailAdmin)) {
+			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailAdmin)) {
 				$this->emailer_send($sender, \Email::config()->get('admin_email'), $subject, $noTemplateBody, $templates, $data);
 			}
-			if ($this->bitfieldTest($actionOrRecipientEmailAddress, self::NotifyEmailInitiator) && $initiatedBy) {
+			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailInitiator) && $initiatedBy) {
 				$this->emailer_send($sender, $initiatedBy->Email, $subject, $noTemplateBody, $templates, $data);
 			}
-			if ($this->bitfieldTest($actionOrRecipientEmailAddress, self::NotifyEmailUpdater) && $updatedBy) {
+			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailUpdater) && $updatedBy) {
 				$this->emailer_send($sender, $updatedBy->Email, $subject, $noTemplateBody, $templates, $data);
 			}
 		} else {

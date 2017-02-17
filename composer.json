@@ -22,8 +22,19 @@
 		"silverstripe/display-logic": "1.4.x",
 		"silverstripe-australia/gridfieldextensions": "1.x",
 		"crackerjackdigital/silverstripe-modular": "*",
+		"crackerjackdigital/silverstripe-modular-fields": "*",
 		"silverstripe/tagfield": "*"
 	},
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/CrackerjackDigital/silverstripe-modular.git"
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/CrackerjackDigital/silverstripe-modular-types.git"
+		}
+	],
 	"extra": {
 		"installer-name": "modular-fields"
 	},

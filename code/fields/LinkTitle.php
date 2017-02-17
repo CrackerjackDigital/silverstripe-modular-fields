@@ -1,7 +1,9 @@
 <?php
 namespace Modular\Fields;
 
-class LinkTitle extends \Modular\Field {
+use Modular\Types\StringType;
+
+class LinkTitle extends \Modular\Field implements StringType {
 	const SingleFieldName = 'LinkTitle';
 	const SingleFieldSchema = 'Varchar(255)';
 }
