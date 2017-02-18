@@ -4,15 +4,15 @@ namespace Modular\Fields;
 use \HtmlEditorField;
 use Modular\Types\StringType;
 
-class Synopsis extends \Modular\Field implements StringType {
-	const FieldName = 'Synopsis';
+class Description extends \Modular\Field implements StringType {
+	const FieldName = 'Description';
 
 	private static $db = [
-		self::FieldName => 'HTMLText',
+		self::FieldName => 'HTMLText'
 	];
 	public function cmsFields($mode) {
 		return [
-			HtmlEditorField::create('Synopsis', 'Synopsis')->setRows(5),
+			HtmlEditorField::create(static::FieldName)->setRows(5),
 		];
 	}
 }

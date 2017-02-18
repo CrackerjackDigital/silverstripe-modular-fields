@@ -22,7 +22,7 @@
 		"silverstripe/display-logic": "1.4.x",
 		"silverstripe-australia/gridfieldextensions": "1.x",
 		"crackerjackdigital/silverstripe-modular": "*",
-		"crackerjackdigital/silverstripe-modular-fields": "*",
+		"crackerjackdigital/silverstripe-modular-types": "*",
 		"silverstripe/tagfield": "*"
 	},
 	"repositories": [
