@@ -6,7 +6,7 @@ namespace Modular\Fields;
  * @package Modular\Fields
  */
 class Media extends File {
-	const RelationshipName = 'Media';
+	const Name = 'Media';
 	const MediaLinkOption = 'Media';
 
 	private static $base_upload_folder = 'media';

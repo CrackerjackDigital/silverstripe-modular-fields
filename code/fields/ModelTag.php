@@ -10,11 +10,11 @@ use Modular\Types\StringType;
  * A field which if blank takes the value of another model field mangled to be same
  * format as a URLSegment. Does not change if the source field changes, only if it is empty.
  */
-class ModelTag extends Field implements StringType {
+class ModelTag extends TypedField implements StringType {
 	use reflection;
 
-	const SingleFieldName   = 'ModelTag';
-	const SingleFieldSchema = 'Varchar(64)';
+	const Name   = 'ModelTag';
+	// const Schema = 'Varchar(64)';
 
 	protected $sourceFieldName = '';
 	protected $parentIDFieldName = '';
@@ -98,8 +98,8 @@ class ModelTag extends Field implements StringType {
 	 */
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
-		if (0 === strlen($this()->{static::SingleFieldName})) {
-			$this()->{static::SingleFieldName} = $this->generateValue();
+		if (0 === strlen($this()->{static::Name})) {
+			$this()->{static::Name} = $this->generateValue();
 		}
 	}
 
@@ -118,8 +118,8 @@ class ModelTag extends Field implements StringType {
 			if ($parent = $this()->{$this->parentIDFieldName}()) {
 				if ($parent->hasExtension('ModelTag')) {
 					$tag = $parent->HierarchicalModelTag() . $this->config()->get('hierarchical_tag_separator');
-				} elseif ($parent->hasField(static::SingleFieldName)) {
-					$tag = $parent->{static::SingleFieldName} . $this->config()->get('hierarchical_tag_separator');
+				} elseif ($parent->hasField(static::Name)) {
+					$tag = $parent->{static::Name} . $this->config()->get('hierarchical_tag_separator');
 				} elseif ($this->fallbackFieldName && $parent->hasField($this->fallbackFieldName)) {
 					$tag = $parent->{$this->fallbackFieldName} . $this->config()->get('hierarchical_tag_separator');
 				}
@@ -184,7 +184,7 @@ class ModelTag extends Field implements StringType {
 		}
 		/** @var DataList $duplicate */
 		$duplicate = DataList::create($this()->ClassName)->filter([
-			static::SingleFieldName => $urlSegment,
+			static::Name => $urlSegment,
 		]);
 
 		if ($parentID = $this->ParentID()) {

@@ -6,42 +6,42 @@ use Modular\Interfaces\ValueGenerator;
 use Modular\Traits\generator;
 use Modular\Types\NumericType;
 
-class TimeStamp extends Field implements ValueGenerator, NumericType {
+class TimeStamp extends TypedField implements ValueGenerator, NumericType {
 	use generator;
 	use \Modular\Traits\timestamp {
 		timestamp as generator;
 	}
-	const SingleFieldName   = 'TimeStamp';
-	const SingleFieldSchema = 'Int';
-	
+	const Name   = 'TimeStamp';
+	// const Schema = 'Int';
+
 	const ShowAsAgoFlag = 3;            // always read only
-	
+
 	private static $generate_always = false;
-	
+
 	private static $generate_empty = true;
-	
+
 	private static $show_as = self::ShowAsAgoFlag;
-	
+
 	public function cmsFields($mode) {
-		$value = round($this()->{static::single_field_name()});
-		
+		$value = round($this()->{static::field_name()});
+
 		$dateTime = new \SS_Datetime();
 		$dateTime->setValue($value);
-		
+
 		if ($this->showAs(static::ShowAsReadOnlyFlag)) {
 			$field = new \ReadonlyField(static::readonly_field_name());
-			
+
 			if ($this->showAs(static::ShowAsAgoFlag)) {
 				$field->setValue($dateTime->Ago(true));
 			} else {
 				$field->setValue($dateTime->Nice());
 			}
 		} else {
-			$field = new \DatetimeField(static::single_field_name());
+			$field = new \DatetimeField(static::field_name());
 			$field->setValue($value);
 			$this->configureDateTimeField($field, false);
 		}
-		
+
 		return [
 			$field,
 		];
@@ -59,8 +59,8 @@ class TimeStamp extends Field implements ValueGenerator, NumericType {
 	public function compare($timeStamp) {
 		return $timeStamp - $this->singleFieldValue();
 	}
-	
-	
+
+
 	/**
 	 * Generate a new value which is 'now' so can be used in comparison, expiry checks etc
 	 *
@@ -69,7 +69,7 @@ class TimeStamp extends Field implements ValueGenerator, NumericType {
 	public function now() {
 		return $this->generator();
 	}
-	
+
 	/**
 	 * Return true if model timestamp is before now (or provided date), false otherwise.
 	 *
@@ -79,10 +79,10 @@ class TimeStamp extends Field implements ValueGenerator, NumericType {
 	 */
 	public function expired($testDate = null) {
 		$testDate = is_null($testDate) ? $this->generator() : $testDate;
-		
+
 		return $this->compare($testDate) >= 0;
 	}
-	
+
 	/**
 	 * Return oppsite to expired.
 	 * @param null $testDate
@@ -92,14 +92,14 @@ class TimeStamp extends Field implements ValueGenerator, NumericType {
 	public function valid($testDate = null) {
 		return !$this->expired($testDate);
 	}
-	
-	
+
+
 	/**
 	 * If empty then set a value. If config.generate_always then always set new value.
 	 */
 	public function onBeforeWrite() {
 		if ($this->shouldGenerate()) {
-			$this()->{static::SingleFieldName} = $this->now();
+			$this()->{static::Name} = $this->now();
 		}
 	}
 }

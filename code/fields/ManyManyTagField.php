@@ -16,7 +16,7 @@ class HasManyManyTagField extends HasManyMany {
 	public function cmsFields($mode) {
 		return [
 			(new TagField(
-				static::RelationshipName,
+				static::Name,
 				'',
 				$this->availableTags()
 			))->setIsMultiple(
@@ -28,7 +28,7 @@ class HasManyManyTagField extends HasManyMany {
 	}
 
 	protected function availableTags() {
-		$tagClassName = static::RelatedClassName;
+		$tagClassName = static::Schema;
 		return $tagClassName::get()->sort('Title');
 	}
 }

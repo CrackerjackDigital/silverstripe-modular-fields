@@ -7,6 +7,6 @@ use Modular\Types\StringType;
  *
  * @package Modular\Fields
  */
-class Formatted extends \Modular\Field implements StringType {
-	const SingleFieldSchema = 'Varchar(32)';
+abstract class Formatted extends \Modular\TypedField implements StringType {
+	// const Schema = 'Varchar(32)';
 }

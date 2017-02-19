@@ -13,7 +13,7 @@ class HasManyManyGridField extends HasManyMany {
 	private static $cms_tab_name = '';
 
 	private static $sortable = true;
-	
+
 	/**
 	 * If model is saved then a gridfield, otherwise a 'save master first' hint.
 	 *
@@ -30,30 +30,30 @@ class HasManyManyGridField extends HasManyMany {
 	 * Return a RelatedModels configured for editing attached MediaModels. If the master record is in the database
 	 * then also add GridFieldOrderableRows (otherwise complaint re UnsavedRelationList not being a DataList happens).
 	 *
-	 * @param string|null $relationshipName
+	 * @param string|null $name
 	 * @param string|null $configClassName name of grid field configuration class otherwise one is manufactured
 	 * @return GridField
 	 */
-	protected function gridField($relationshipName = null, $configClassName = null) {
-		$relationshipName = $relationshipName
+	protected function gridField($name = null, $configClassName = null) {
+		$name = $name
 			?: static::relationship_name();
 
-		if (!$relationshipName) {
-			if ($relatedClassName = static::related_class_name()) {
+		if (!$name) {
+			if ($schema = static::related_class_name()) {
 				$related = DataObject::get();
 			} else {
 				$related = \ArrayList::create();
 			}
 		} else {
-			$related = $this()->$relationshipName();
+			$related = $this()->$name();
 		}
 
-		$config = $this->gridFieldConfig($relationshipName, $configClassName);
+		$config = $this->gridFieldConfig($name, $configClassName);
 
 		/** @var HasManyManyGridField $gridField */
 		$gridField = \GridField::create(
-			$relationshipName,
-			$relationshipName,
+			$name,
+			$name,
 			$related,
 			$config
 		);
@@ -71,12 +71,12 @@ class HasManyManyGridField extends HasManyMany {
 	/**
 	 * Allow override of grid field config
 	 *
-	 * @param $relationshipName
+	 * @param $name
 	 * @param $configClassName
 	 * @return GridFieldConfig
 	 */
-	protected function gridFieldConfig($relationshipName, $configClassName) {
-		$relationshipName = $relationshipName ?: static::relationship_name();
+	protected function gridFieldConfig($name, $configClassName) {
+		$name = $name ?: static::relationship_name();
 
 		$configClassName = $configClassName
 			?: static::GridFieldConfigName
@@ -85,10 +85,10 @@ class HasManyManyGridField extends HasManyMany {
 		/** @var GridFieldConfig $config */
 		$config = $configClassName::create();
 
-		$relatedClassName = static::related_class_name() ?: $relationshipName;
+		$schema = static::related_class_name() ?: $name;
 
 		$config->setSearchPlaceholder(
-			\Config::inst()->get("$relatedClassName.SearchPlaceHolder", "Link existing by Title")
+			\Config::inst()->get("$schema.SearchPlaceHolder", "Link existing by Title")
 		);
 		return $config;
 	}

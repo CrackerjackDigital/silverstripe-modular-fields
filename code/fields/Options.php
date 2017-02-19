@@ -1,15 +1,15 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\Field;
+use Modular\TypedField;
 
-abstract class Options extends Field  {
-	// the name of the field, if RelatedClassName is set then this will be used as the ID field on has_one relationships
-	const SingleFieldName = '';
+abstract class Options extends TypedField  {
+	// the name of the field, if Schema is set then this will be used as the ID field on has_one relationships
+	const Name = '';
 	// for has_one fields set this if you want the option selector field to show models from this class,
 	// IDs will be the key, Titles the value.
-	// NB:: The result of single_field_name will also have an 'ID' appended automatically
-	const RelatedClassName = '';
+	// NB:: The result of field_name will also have an 'ID' appended automatically
+	// const Schema = '';
 
 	const ShowAsDropdown = 'Dropdown';
 	const ShowAsRadio    = 'Radio';
@@ -31,13 +31,13 @@ abstract class Options extends Field  {
 
 	private static $empty_string;
 
-	// if we're showing related by setting RelatedClassName then sort those models by this
+	// if we're showing related by setting Schema then sort those models by this
 	private static $options_sort = 'Title asc';
 
-	// will be appled as a filter to options if RelatedClassName is set and so options are those models
+	// will be appled as a filter to options if Schema is set and so options are those models
 	private static $options_filter = [];
 
-	// will be used as key => value for options if RelatedClassName is set
+	// will be used as key => value for options if Schema is set
 	private static $options_fields = ['ID', 'Title'];
 
 	public function cmsFields($mode) {
@@ -68,7 +68,7 @@ abstract class Options extends Field  {
 		switch ($this->config()->get('show_as')) {
 		case self::ShowAsDropdown:
 			$field = new \DropdownField(
-				static::single_field_name(),
+				static::field_name(),
 				'',
 				static::options()
 			);
@@ -78,7 +78,7 @@ abstract class Options extends Field  {
 			break;
 		case self::ShowAsRadio:
 			$field = new \OptionsetField(
-				static::single_field_name(),
+				static::field_name(),
 				'',
 				static::options()
 			);
@@ -95,25 +95,25 @@ abstract class Options extends Field  {
 	}
 
 	/**
-	 * If RelatedClassName then return field name with 'ID' appended, otherwise just the field name. This will only
+	 * If Schema then return field name with 'ID' appended, otherwise just the field name. This will only
 	 * work properly if the relationship is a 'has_one' and could break otherwise unless you set suffix to '' explicitly.
 	 *
 	 * @param string $suffix
 	 * @return mixed|string
 	 */
-	public static function single_field_name($suffix = 'ID') {
-		if (static::RelatedClassName) {
-			$name = parent::single_field_name($suffix);
+	public static function field_name($suffix = 'ID') {
+		if (static::Schema) {
+			$name = parent::field_name($suffix);
 		} else {
 			// if suffix is 'ID' then remove as that would probably be illegal
 			// you could force it by supplying IDID though that would be a smell
-			$name = parent::single_field_name($suffix == 'ID' ? substr($suffix, 0, -2) : $suffix);
+			$name = parent::field_name($suffix == 'ID' ? substr($suffix, 0, -2) : $suffix);
 		}
 		return $name;
 	}
 
 	/**
-	 * Return related class title and id map if RelatedClassName is set, otherwise options from the
+	 * Return related class title and id map if Schema is set, otherwise options from the
 	 * config.options with values translated if language key is found for input value.
 	 *
 	 * @param array|null $default   use this as the default map instead of config.default_value.
@@ -126,11 +126,11 @@ abstract class Options extends Field  {
 	 * @return array
 	 */
 	public static function options($default = [], $override = []) {
-		if (static::RelatedClassName) {
+		if (static::Schema) {
 
 			$optionFields = static::option_fields();
 
-			$options = \DataObject::get(static::RelatedClassName)
+			$options = \DataObject::get(static::Schema)
 				->filter(static::options_filter())
 				->sort(static::options_sort())
 				->map(key($optionFields), current($optionFields))
@@ -161,7 +161,7 @@ abstract class Options extends Field  {
 		return static::config()->get('options_sort');
 	}
 	/**
-	 * Return a map of filters to apply to option selector used if RelatedClassName is set suitable for use by ORM filter method.
+	 * Return a map of filters to apply to option selector used if Schema is set suitable for use by ORM filter method.
 	 * By default an empty filter '[]'.
 	 *
 	 * @return array

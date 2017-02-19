@@ -4,13 +4,13 @@ namespace Modular\Fields;
 use DisplayLogicWrapper;
 use TreeDropdownField;
 
-class InternalLink extends \Modular\Field {
+class InternalLink extends \Modular\TypedField {
 	const InternalLinkOption    = 'InternalLink';
 	const InternalLinkFieldName = 'InternalLinkID';
-	const RelationshipName      = 'InternalLink';
+	const Name      = 'InternalLink';
 
 	private static $has_one = [
-		self::RelationshipName => 'SiteTree',
+		self::Name => 'SiteTree',
 	];
 
 	public function cmsFields($mode) {

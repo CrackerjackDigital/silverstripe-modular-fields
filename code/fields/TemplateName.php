@@ -3,12 +3,12 @@ namespace Modular\Fields;
 
 use Modular\Types\StringType;
 
-class TemplateName extends \Modular\Field implements StringType {
-	const SingleFieldName   = 'TemplateName';
-	const SingleFieldSchema = 'Varchar(255)';
+class TemplateName extends \Modular\TypedField implements StringType {
+	const Name   = 'TemplateName';
+	// const Schema = 'Varchar(255)';
 
 	const TemplateMustExist = false;
-	
+
 	/**
 	 * Fail if a template name is set and the template doesn't exist.
 	 *

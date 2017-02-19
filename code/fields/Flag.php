@@ -10,7 +10,7 @@ use Modular\Types\BoolType;
  * @package modular\Fields
  */
 abstract class Flag extends Options implements BoolType {
-	const SingleFieldSchema = 'Boolean';
+	// const Schema = 'Boolean';
 	const NoValue           = 0;
 	const YesValue          = 1;
 
@@ -27,7 +27,7 @@ abstract class Flag extends Options implements BoolType {
 
 	public function cmsFields($mode) {
 		return [
-			static::single_field_name() => $this->makeField(),
+			static::field_name() => $this->makeField(),
 		];
 	}
 
@@ -54,7 +54,7 @@ abstract class Flag extends Options implements BoolType {
 		switch (static::config()->get('show_as')) {
 		case self::ShowAsCheckbox:
 			$field = new \CheckboxField(
-				static::single_field_name(),
+				static::field_name(),
 				'',
 				$value
 			);

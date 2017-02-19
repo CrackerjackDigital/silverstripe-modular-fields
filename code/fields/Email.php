@@ -2,6 +2,6 @@
 namespace Modular\Fields;
 
 class Email extends Formatted {
-	const SingleFieldName = 'Email';
-	const SingleFieldSchema = 'Varchar(255)';
+	const Name = 'Email';
+	// const Schema = 'Varchar(255)';
 }

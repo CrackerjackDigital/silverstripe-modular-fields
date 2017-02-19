@@ -4,11 +4,11 @@ namespace Modular\Fields;
 use Modular\Field;
 use Modular\Types\URLType;
 
-class ExternalLink extends Field implements URLType {
+class ExternalLink extends TypedField implements URLType {
 	const ExternalLinkOption    = 'ExternalLink';
-	const SingleFieldName       = 'ExternalLink';
-	const SingleFieldSchema     = 'Text';
-	
+	const Name       = 'ExternalLink';
+	// const Schema     = 'Text';
+
 	/**
 	 * If value does not have a schema then prefix 'file://'
 	 * @param null $typeCast ignored
@@ -22,6 +22,6 @@ class ExternalLink extends Field implements URLType {
 		}
 		return $value;
 	}
-	
+
 
 }

@@ -2,7 +2,7 @@
 namespace Modular\Fields;
 
 class Logo extends Image {
-	const RelationshipName        = 'Logo';
+	const Name        = 'Logo';
 	const DefaultUploadFolderName = 'logos';
 
 	private static $upload_folder = 'logos';
@@ -13,7 +13,7 @@ class Logo extends Image {
 	 * @return Image|null
 	 */
 	public function Logo() {
-		return $this()->{self::RelationshipName}();
+		return $this()->{self::Name}();
 	}
 
 	public function Logos() {

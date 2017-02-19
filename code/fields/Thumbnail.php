@@ -2,7 +2,7 @@
 namespace Modular\Fields;
 
 class Thumbnail extends Image {
-	const RelationshipName        = 'Thumbnail';
+	const Name        = 'Thumbnail';
 	const DefaultUploadFolderName = 'thumbnails';
 
 	private static $allowed_thumbnail_files = 'image';
@@ -15,7 +15,7 @@ class Thumbnail extends Image {
 	 * @return Image|null
 	 */
 	public function Thumbnail() {
-		return $this()->{self::RelationshipName}();
+		return $this()->{self::Name}();
 	}
 
 	public function Thumbnails() {

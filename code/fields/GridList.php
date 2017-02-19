@@ -5,6 +5,6 @@ namespace Modular\Fields;
  *
  * @package Modular\Fields
  */
-class GridList extends \Modular\Field {
+class GridList extends \Modular\TypedField {
 
 }

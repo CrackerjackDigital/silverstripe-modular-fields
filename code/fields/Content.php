@@ -2,10 +2,10 @@
 namespace Modular\Fields;
 
 use Modular\Field;
+use Modular\Types\HTMLType;
 use Modular\Types\StringType;
 
-class Content extends Field implements StringType {
-	const SingleFieldName   = 'Content';
-	const SingleFieldSchema = 'HTMLText';
+class Content extends TypedField implements HTMLType {
+	const Name   = 'Content';
 
 }

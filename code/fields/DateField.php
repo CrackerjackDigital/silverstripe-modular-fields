@@ -1,20 +1,19 @@
 <?php
 namespace Modular\Fields;
 
-use \DateField as DField;
+use DateField as DField;
+use DatetimeField as DTField;
+use Modular\TypedField;
 use Modular\Types\DateTimeType;
-use Modular\Types\DateType;
-use \TimeField as TField;
-use \DatetimeField as DTField;
+use TimeField as TField;
 
 /**
  * A EventDate field which is distinct from the SilverStripe 'Created' field.
  */
-class DateTimeField extends \Modular\Field implements DateTimeType {
+abstract class DateTimeField extends TypedField implements DateTimeType {
 	// override for field name in implementation class
-	const SingleFieldName = '';
-	// always use SS_DateTime for dates and date-times
-	const SingleFieldSchema = 'SS_DateTime';
+	const Name = '';
+
 	// show time field or just the date field?
 	const ShowTimeField = false;
 	// show Year, Month, Day, Hours, Minutes as separated fields, one per unit
@@ -28,12 +27,12 @@ class DateTimeField extends \Modular\Field implements DateTimeType {
 			parent::extraStatics($class, $extension) ?: [],
 			[
 				'validation' => [
-					static::SingleFieldName => static::DateRequired,
+					static::Name => static::DateRequired,
 				]
 			]
 		);
 	}
-	
+
 	/**
 	 * Convenience method returns a MySQL compatible date time for 'now'
 	 * @return false|string
@@ -49,11 +48,11 @@ class DateTimeField extends \Modular\Field implements DateTimeType {
 	 */
 	public function onBeforeValidate(\ValidationResult $result) {
 		$postVars = \Controller::curr()->getRequest()->postVars();
-		if (isset($postVars[ static::SingleFieldName ]) && is_array($postVars[ static::SingleFieldName ])) {
-			$date = $postVars[ static::SingleFieldName ];
+		if (isset($postVars[ static::Name ]) && is_array($postVars[ static::Name ])) {
+			$date = $postVars[ static::Name ];
 
 			if (count(array_filter($date)) == 3) {
-				$this()->{static::SingleFieldName} = implode('-', [$date['year'], $date['month'], $date['day']]);
+				$this()->{static::Name} = implode('-', [$date['year'], $date['month'], $date['day']]);
 			}
 		}
 	}
@@ -79,9 +78,9 @@ class DateTimeField extends \Modular\Field implements DateTimeType {
 	 * @param array $fields
 	 */
 	public function updateSummaryFields(&$fields) {
-		$fields[ static::SingleFieldName ] = $this->fieldDecoration(static::SingleFieldName);
+		$fields[ static::Name ] = $this->fieldDecoration(static::Name);
 	}
-	
+
 	/**
 	 * Returns fields for entering date and time. NB injector has overridden the TimeField to be CERATimeField to
 	 * fix a problem saving DatatimeField with no date.
@@ -93,13 +92,13 @@ class DateTimeField extends \Modular\Field implements DateTimeType {
 		if (static::ShowTimeField) {
 			return [
 				DTField::create(
-					static::SingleFieldName
+					static::Name
 				),
 			];
 		} else {
 			return [
 				DField::create(
-					static::SingleFieldName
+					static::Name
 				),
 			];
 		}
@@ -113,7 +112,7 @@ class DateTimeField extends \Modular\Field implements DateTimeType {
 	 */
 	public function customFieldConstraints(\FormField $field, array $allFieldConstraints) {
 		/** @var DField $field */
-		if ($field->getName() == static::SingleFieldName) {
+		if ($field->getName() == static::Name) {
 			if ($field instanceof DTField) {
 				$this->configureDateTimeField($field, static::ShowSeparateFields);
 			} else {

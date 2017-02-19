@@ -1,10 +1,11 @@
 <?php
 namespace Modular\Fields;
 
+use Modular\TypedField;
 use Modular\Types\StringType;
 use TextField;
 
-class EmbedCode extends \Modular\Field implements StringType {
+class EmbedCode extends TypedField implements StringType {
 	const EmbedCodeFieldName = 'EmbedCode';
 	const EmbedCodeOption    = 'EmbedCode';
 

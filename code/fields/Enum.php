@@ -10,7 +10,7 @@ class Enum extends Options implements StringType {
 	 *
 	 * @return string
 	 */
-	public static function single_field_schema() {
+	public static function schema() {
 		if ($options = array_filter(static::options())) {
 			return "Enum('" . implode(',', $options) . "')";
 		}

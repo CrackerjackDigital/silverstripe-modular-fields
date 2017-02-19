@@ -15,7 +15,7 @@ use Modular\Traits\upload;
 class Transcript extends File {
 	use upload;
 
-	const RelationshipName        = 'Transcript';
+	const Name        = 'Transcript';
 	const DefaultUploadFolderName = 'transcripts';
 
 	private static $allowed_transcript_files = 'doc';

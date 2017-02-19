@@ -75,7 +75,7 @@ abstract class StateEngineField extends Enum {
 		#       self::FromState2 => self::EmailInitiator
 		#   ]
 	];
-	
+
 	/**
 	 * Adds a StateUpdated DateTime field to the model as well as the parent Enum field.
 	 *
@@ -128,7 +128,7 @@ abstract class StateEngineField extends Enum {
 		$next = [key($options) => key($options)];
 
 		if ($this()->isInDB()) {
-			if ($current = $this()->{static::single_field_name()}) {
+			if ($current = $this()->{static::field_name()}) {
 				if (array_key_exists($current, $options)) {
 					// create a map with next options as key and value
 					$next = array_combine(
@@ -188,18 +188,18 @@ abstract class StateEngineField extends Enum {
 	}
 
 	public static function updated_date_field_name() {
-		return parent::single_field_name(static::UpdatedDateFieldPostfix);
+		return parent::field_name(static::UpdatedDateFieldPostfix);
 	}
 
 	public static function watcher_email_field_name() {
-		return parent::single_field_name(static::WatcherEmailPostfix);
+		return parent::field_name(static::WatcherEmailPostfix);
 	}
 
 	public static function updated_by_field_name($suffix = '') {
 		$postfix = substr(static::UpdatedByFieldPostfix, -2) == 'ID' ? static::UpdatedByFieldPostfix
 			: (static::UpdatedByFieldPostfix . 'ID');
 
-		return parent::single_field_name($postfix . $suffix);
+		return parent::field_name($postfix . $suffix);
 	}
 
 	public static function initiated_by_field_name($suffix = '') {
@@ -207,7 +207,7 @@ abstract class StateEngineField extends Enum {
 			? static::InitiatedByFieldPostfix
 			: (static::InitiatedByFieldPostfix . 'ID');
 
-		return parent::single_field_name($postfix . $suffix);
+		return parent::field_name($postfix . $suffix);
 	}
 
 	/**
@@ -217,7 +217,7 @@ abstract class StateEngineField extends Enum {
 	 */
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
-		$fieldName = static::single_field_name();
+		$fieldName = static::field_name();
 
 		// previous value would have been set in parent onBeforeWrite method if there was one.
 		if ($this->previousValue($previousValue)) {
@@ -250,7 +250,7 @@ abstract class StateEngineField extends Enum {
 		parent::onAfterWrite();
 		if ($this->previousValue($previousValue)) {
 			// will throw an exception if can't do it
-			$this->checkStateChange(self::StateChanged, $previousValue, $this()->{static::single_field_name()});
+			$this->checkStateChange(self::StateChanged, $previousValue, $this()->{static::field_name()});
 		}
 	}
 
@@ -391,7 +391,7 @@ abstract class StateEngineField extends Enum {
 	 * @throws \ValidationException
 	 */
 	public function validate(\ValidationResult $result) {
-		$fieldName = static::single_field_name();
+		$fieldName = static::field_name();
 
 		if ($this()->isChanged($fieldName)) {
 			$states = static::config()->get('states');
@@ -400,7 +400,7 @@ abstract class StateEngineField extends Enum {
 			$original = $this()->getChangedFields()[ $fieldName ]['before'];
 
 			if (!in_array($new, $states[ $original ])) {
-				$result->error(_t(static::single_field_name() . '.InvalidTransition', "Can't go from state '$original' to '$new'"));
+				$result->error(_t(static::field_name() . '.InvalidTransition', "Can't go from state '$original' to '$new'"));
 			}
 		}
 

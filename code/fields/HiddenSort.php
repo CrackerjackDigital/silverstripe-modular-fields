@@ -3,11 +3,11 @@ namespace Modular\Fields;
 
 use Modular\Types\IntType;
 
-class HiddenSort extends \Modular\Field implements IntType {
-	const SingleFieldName = 'Sort';
-	const SingleFieldSchema = 'Int';
+class HiddenSort extends \Modular\TypedField implements IntType {
+	const Name = 'Sort';
+	// const Schema = 'Int';
 	const ReadOnly = true;
-	
+
 	/**
 	 * In CMS replace the field with a Read Only field.
 	 *
@@ -17,7 +17,7 @@ class HiddenSort extends \Modular\Field implements IntType {
 	public function cmsFields($mode) {
 		if (static::ReadOnly) {
 			$fields = parent::cmsFields($mode);
-			$fields[ static::SingleFieldName ] = new \HiddenField(static::SingleFieldName);
+			$fields[ static::Name ] = new \HiddenField(static::Name);
 			return $fields;
 		}
 	}

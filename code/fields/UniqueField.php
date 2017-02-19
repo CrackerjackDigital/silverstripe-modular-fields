@@ -1,11 +1,11 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\Field;
+use Modular\TypedField;
 use Modular\Model;
 use Modular\Types\StringType;
 
-class UniqueField extends Field implements StringType {
+class UniqueField extends TypedField implements StringType {
 	/**
 	 * Always a ReadonlyField
 	 *
@@ -14,10 +14,10 @@ class UniqueField extends Field implements StringType {
 	 */
 	public function cmsFields($mode) {
 		return [
-			new \ReadonlyField(static::SingleFieldName)
+			new \ReadonlyField(static::Name)
 		];
 	}
-	
+
 	/**
 	 * A unique field should have an index, however it isn't a unique index as e.g. the field
 	 * may only be unique at one level of a heirarchy or across model classes.
@@ -32,7 +32,7 @@ class UniqueField extends Field implements StringType {
 			parent::extraStatics($class, $extension) ?: [],
 			[
 				'indexes' => [
-					static::single_field_name() => true
+					static::field_name() => true
 				]
 			]
 		);
@@ -49,7 +49,7 @@ class UniqueField extends Field implements StringType {
 		// this could throw an exception, let it
 		parent::validate($result);
 
-		$fieldName = static::single_field_name();
+		$fieldName = static::field_name();
 
 		$value = $this()->{$fieldName};
 

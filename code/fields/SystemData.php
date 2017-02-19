@@ -12,7 +12,7 @@ use Modular\Traits\enabler;
 class SystemData extends Flag {
 	use enabler;
 
-	const SingleFieldName= 'SystemFlag';
+	const Name= 'SystemFlag';
 
 	// can be set to false if all values are required to be returned, e.g. when building the SocialEdgeType table
 	// we need to be able to check for existing System records.
@@ -20,7 +20,7 @@ class SystemData extends Flag {
 
 	public function augmentSQL(\SQLQuery &$query) {
 		if (self::enabled()) {
-			$query->addWhere(self::single_field_name() . " = " . self::NoValue);
+			$query->addWhere(self::field_name() . " = " . self::NoValue);
 		}
 		parent::augmentSQL($query);
 	}

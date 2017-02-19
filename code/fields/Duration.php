@@ -1,7 +1,8 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\Types\TimeType;
+use Modular\TypedField;
+use Modular\Types\Time;
 use TextField;
 
 /**
@@ -9,21 +10,21 @@ use TextField;
  *
  * @package Modular\Fields
  */
-class Duration extends \Modular\Field implements TimeType {
-	const SingleFieldName = 'Duration';
-	const SingleFieldSchema = 'Float';
-	
+class Duration extends TypedField implements Time {
+	const Name = 'Duration';
+	// const Schema = 'Float';
+
 	public function cmsFields($mode) {
 		if ($this->showAs(static::ShowAsReadOnlyFlag)) {
 			$field = new \ReadonlyField(static::readonly_field_name());
 		} else {
-			$field = new \NumericField(static::single_field_name());
+			$field = new \NumericField(static::field_name());
 		}
 		return [
 			$field
 		];
 	}
-	
+
 	/**
 	 * Compare provided date with internal date (either AuthTokenUsed or Created) + duration and return an int as follows:
 	 *  -ve value:  internal date + duration is before provided date, so valid by x seconds/microseconds
@@ -37,7 +38,7 @@ class Duration extends \Modular\Field implements TimeType {
 	public function compare($withDate) {
 		return $this->singleFieldValue() - $withDate;
 	}
-	
+
 	/**
 	 * Return true if model timestamp is before now (or provided date), false otherwise.
 	 *
@@ -49,7 +50,7 @@ class Duration extends \Modular\Field implements TimeType {
 		$testDate = is_null($testDate) ? $this->now() : $testDate;
 		return $this->compare($testDate) > 0;
 	}
-	
+
 	/**
 	 * Opposite of expired.
 	 * @param null $testDate
@@ -59,7 +60,7 @@ class Duration extends \Modular\Field implements TimeType {
 	public function valid($testDate = null) {
 		return !$this->expired($testDate);
 	}
-	
+
 	/**
 	 * Generate a new value which is 'now' so can be used in comparison, expiry checks etc
 	 *

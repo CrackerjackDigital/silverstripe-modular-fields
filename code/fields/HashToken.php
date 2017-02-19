@@ -7,17 +7,17 @@ use Modular\Traits\generator;
 use Modular\Traits\md5;
 use Modular\Types\StringType;
 
-class HashToken extends \Modular\Field implements ValueGenerator, StringType {
+class HashToken extends \Modular\TypedField implements ValueGenerator, StringType {
 	use generator;
 	use md5 {
 		md5 as generator;
 	}
-	
-	const SingleFieldName = 'HashToken';
-	const SingleFieldSchema = 'Varchar(128)';
+
+	const Name = 'HashToken';
+	// const Schema = 'Varchar(128)';
 
 	private static $max_length = 128;
-	
+
 	private static $generate_always = false;
 
 	/**
@@ -30,7 +30,7 @@ class HashToken extends \Modular\Field implements ValueGenerator, StringType {
 			$this->singleFieldValue($this->generator(uniqid()));
 		}
 	}
-	
+
 	public static function max_length() {
 		return static::config()->get('max_length') ?: 0;
 	}

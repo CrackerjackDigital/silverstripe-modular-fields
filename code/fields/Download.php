@@ -2,8 +2,8 @@
 namespace Modular\Fields;
 
 class Download extends File {
-	const RelationshipName        = 'Download';
-	const RelatedClassName        = 'File';
+	const Name        = 'Download';
+	// const Schema        = 'File';
 	const DefaultUploadFolderName = 'downloads';
 
 	// if an array then file extensions, if a string then a category e.g. 'video', if a csv
@@ -16,7 +16,7 @@ class Download extends File {
 
 
 	public function Files() {
-		return new \ArrayList(array_filter($this->{static::RelationshipName}()));
+		return new \ArrayList(array_filter($this->{static::Name}()));
 	}
 
 	public static function allowed_files() {

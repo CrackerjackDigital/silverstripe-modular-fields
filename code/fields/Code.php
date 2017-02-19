@@ -19,19 +19,19 @@ use ValidationResult;
 class Code extends UniqueField {
 	use enabler;
 
-	const SystemCode        = '_SYS_';
-	const SingleFieldName   = 'Code';
-	const SingleFieldSchema = 'Varchar(5)';
+	const SystemCode = '_SYS_';
+	const Name       = 'Code';
+	// const Schema     = 'Varchar(5)';
 
 	public function cmsFields($mode) {
 		if ($this()->isInDB()) {
 			return [
-				new ReadonlyField(self::SingleFieldName . 'RO', 'Unique Code', $this()->{self::SingleFieldName}),
-				new HiddenField(self::SingleFieldName),
+				new ReadonlyField(self::Name . 'RO', 'Unique Code', $this()->{self::Name}),
+				new HiddenField(self::Name),
 			];
 		} else {
 			return [
-				new TextField(self::SingleFieldName),
+				new TextField(self::Name),
 			];
 		}
 	}
@@ -45,7 +45,7 @@ class Code extends UniqueField {
 		parent::augmentSQL($query);
 
 		if ($this->enabled() && !Permission::check('ADMIN')) {
-			$query->addWhere(self::SingleFieldName . " != '" . self::SystemCode . "'");
+			$query->addWhere(self::Name . " != '" . self::SystemCode . "'");
 		}
 	}
 

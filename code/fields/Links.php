@@ -8,7 +8,7 @@ use SS_List;
  * @method SS_List Links
  */
 class Links extends HasManyMany {
-	const RelationshipName = 'Links';
-	const RelatedClassName = 'Modular\Models\Link';
+	const Name = 'Links';
+	// const Schema = 'Modular\Models\Link';
 
 }

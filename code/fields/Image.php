@@ -4,16 +4,17 @@ namespace Modular\Fields;
 use ArrayList;
 use FormField;
 use Modular\Interfaces\Imagery;
+use Modular\Types\ImageType;
 
 /**
- * Image represents a single attached image, this is a relationship so use RelationshipName and RelationshipClassName
- * not SingleFieldName and SingleFieldSchema.
+ * Image represents a single attached image, this is a relationship so use Name and RelationshipClassName
+ * not Name and Schema.
  *
  * @package Modular\Fields
  */
-class Image extends File implements Imagery {
-	const RelationshipName = 'Image';
-	const RelatedClassName = 'Image';
+class Image extends File implements Imagery, ImageType {
+	const Name = 'Image';
+	// const Schema = 'Image';
 
 	private static $base_upload_folder = 'images';
 
@@ -34,7 +35,7 @@ class Image extends File implements Imagery {
 	 * @return Image|null
 	 */
 	public function Image() {
-		return $this()->{self::RelationshipName}();
+		return $this()->{self::Name}();
 	}
 
 }
