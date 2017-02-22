@@ -12,7 +12,7 @@ class UniqueField extends TypedField implements StringType {
 	 * @param $mode
 	 * @return array
 	 */
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		return [
 			new \ReadonlyField(static::Name)
 		];

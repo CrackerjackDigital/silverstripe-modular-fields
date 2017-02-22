@@ -8,7 +8,7 @@ use Modular\Types\FileType;
 use Modular\Types\URNType;
 use UploadField;
 
-class File extends HasOne implements URNType, FileType {
+class File extends HasOne implements FileType {
 	use upload;
 
 	const Name                    = 'File';
@@ -26,7 +26,7 @@ class File extends HasOne implements URNType, FileType {
 	// this will be appended to 'base_upload_folder'
 	private static $upload_folder = self::DefaultUploadFolderName;
 
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		return [
 			$this->makeUploadField(static::field_name()),
 		];

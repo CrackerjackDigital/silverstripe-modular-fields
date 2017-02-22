@@ -6,10 +6,11 @@ use Modular\TypedField;
 abstract class Options extends TypedField  {
 	// the name of the field, if Schema is set then this will be used as the ID field on has_one relationships
 	const Name = '';
+
 	// for has_one fields set this if you want the option selector field to show models from this class,
 	// IDs will be the key, Titles the value.
 	// NB:: The result of field_name will also have an 'ID' appended automatically
-	// const Schema = '';
+	//	const Schema = '';
 
 	const ShowAsDropdown = 'Dropdown';
 	const ShowAsRadio    = 'Radio';
@@ -40,7 +41,7 @@ abstract class Options extends TypedField  {
 	// will be used as key => value for options if Schema is set
 	private static $options_fields = ['ID', 'Title'];
 
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		return [
 			$this->makeField(),
 		];
@@ -102,7 +103,7 @@ abstract class Options extends TypedField  {
 	 * @return mixed|string
 	 */
 	public static function field_name($suffix = 'ID') {
-		if (static::Schema) {
+		if (static::schema()) {
 			$name = parent::field_name($suffix);
 		} else {
 			// if suffix is 'ID' then remove as that would probably be illegal
@@ -126,24 +127,25 @@ abstract class Options extends TypedField  {
 	 * @return array
 	 */
 	public static function options($default = [], $override = []) {
-		if (static::Schema) {
-
-			$optionFields = static::option_fields();
-
-			$options = \DataObject::get(static::Schema)
-				->filter(static::options_filter())
-				->sort(static::options_sort())
-				->map(key($optionFields), current($optionFields))
-				->toArray();
-
-		} else {
+		// try hard-coded options first
+		if ($options = static::config()->get('options')) {
 			// will use override if 2 or more arguments passed
 			$options = array_map(
 				function ($labelOrLangKey) {
 					return _t(get_called_class() . ".$labelOrLangKey", $labelOrLangKey);
 				},
-				(func_num_args() >= 2) ? $override : static::config()->get('options')
+				(func_num_args() >= 2) ? $override : $options
 			);
+
+		} else if ($schema = static::Schema) {
+
+			$optionFields = static::option_fields();
+
+			$options = \DataObject::get($schema)
+				->filter(static::options_filter())
+				->sort(static::options_sort())
+				->map(key($optionFields), current($optionFields))
+				->toArray();
 		}
 		if (func_num_args() >= 1) {
 			// at least default passed

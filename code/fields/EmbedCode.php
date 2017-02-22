@@ -13,7 +13,7 @@ class EmbedCode extends TypedField implements StringType {
 		self::EmbedCodeFieldName => 'Text'
 	];
 
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		return [
 			new TextField(self::EmbedCodeFieldName)
 		];

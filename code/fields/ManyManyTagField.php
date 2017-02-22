@@ -13,7 +13,7 @@ class HasManyManyTagField extends HasManyMany {
 	private static $multiple_tags = true;
 	private static $can_create_tags = true;
 
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		return [
 			(new TagField(
 				static::Name,

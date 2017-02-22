@@ -13,7 +13,7 @@ class InternalLink extends \Modular\TypedField {
 		self::Name => 'SiteTree',
 	];
 
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		return [
 			(new DisplayLogicWrapper(
 				new TreeDropdownField(self::InternalLinkFieldName, 'Link to', 'SiteTree')

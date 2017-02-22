@@ -14,7 +14,7 @@ class Duration extends TypedField implements Time {
 	const Name = 'Duration';
 	// const Schema = 'Float';
 
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		if ($this->showAs(static::ShowAsReadOnlyFlag)) {
 			$field = new \ReadonlyField(static::readonly_field_name());
 		} else {

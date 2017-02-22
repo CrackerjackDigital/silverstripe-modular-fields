@@ -1,9 +1,9 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\Field;
 use Modular\Interfaces\ValueGenerator;
 use Modular\Traits\generator;
+use Modular\TypedField;
 use Modular\Types\NumericType;
 
 class TimeStamp extends TypedField implements ValueGenerator, NumericType {
@@ -22,7 +22,7 @@ class TimeStamp extends TypedField implements ValueGenerator, NumericType {
 
 	private static $show_as = self::ShowAsAgoFlag;
 
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		$value = round($this()->{static::field_name()});
 
 		$dateTime = new \SS_Datetime();
@@ -102,4 +102,5 @@ class TimeStamp extends TypedField implements ValueGenerator, NumericType {
 			$this()->{static::Name} = $this->now();
 		}
 	}
+
 }

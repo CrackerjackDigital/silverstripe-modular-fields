@@ -139,7 +139,7 @@ abstract class Field extends ModelExtension {
 	 * @param $mode
 	 * @return array
 	 */
-	public function cmsFields($mode) {
+	public function cmsFields($mode = null) {
 		$fields = [];
 
 		if (static::field_name() && static::schema()) {
@@ -251,7 +251,7 @@ abstract class Field extends ModelExtension {
 		}
 
 		// we want neither or both of name and schema
-		if (!in_array(
+		if (in_array(
 			count(
 				array_filter(
 					[
@@ -265,19 +265,15 @@ abstract class Field extends ModelExtension {
 			]
 		)
 		) {
-			$this->debug_fail(
-				new Exception(
-					"Can't add model field to '$class.$extension' as one of Name '$fieldName' or Schema '$fieldSchema' is missing"
-				)
+			return array_merge_recursive(
+				$parent,
+				($fieldName && $fieldSchema)
+					? ['db' => [$fieldName => $fieldSchema]]
+					: []
 			);
 		}
+		return [];
 
-		return array_merge_recursive(
-			$parent,
-			( $fieldName && $fieldSchema )
-				? [ 'db' => [ $fieldName => $fieldSchema ] ]
-				: []
-		);
 	}
 
 	/**

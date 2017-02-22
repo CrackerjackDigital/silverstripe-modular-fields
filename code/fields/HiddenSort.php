@@ -14,7 +14,7 @@ class HiddenSort extends \Modular\TypedField implements IntType {
 	 * @param $mode
 	 * @return array
 	 */
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		if (static::ReadOnly) {
 			$fields = parent::cmsFields($mode);
 			$fields[ static::Name ] = new \HiddenField(static::Name);

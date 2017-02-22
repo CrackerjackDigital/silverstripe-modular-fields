@@ -1,9 +1,9 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\Types\StringType;
+use Modular\Types\OptionType;
 
-class Enum extends Options implements StringType {
+class Enum extends Options implements OptionType {
 
 	/**
 	 * For an enum field the schema is an Enum of all options. Numeric enum values are not allowed.

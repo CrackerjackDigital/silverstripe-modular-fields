@@ -88,7 +88,7 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	 * @param $mode
 	 * @return array
 	 */
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		if (static::ShowTimeField) {
 			return [
 				DTField::create(

@@ -20,7 +20,7 @@ class HasManyManyGridField extends HasManyMany {
 	 * @param $mode
 	 * @return array
 	 */
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		return $this()->isInDB()
 			? [$this->gridField()]
 			: [$this->saveMasterHint()];

@@ -25,7 +25,7 @@ abstract class Flag extends Options implements BoolType {
 		self::YesValue => 'Yes',
 	];
 
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		return [
 			static::field_name() => $this->makeField(),
 		];

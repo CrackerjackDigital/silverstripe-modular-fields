@@ -82,7 +82,7 @@ abstract class StateEngineField extends Enum {
 	 * @param $mode
 	 * @return array
 	 */
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		$updatedBy = \Member::get()->byID($this()->{static::updated_by_field_name()}) ?: \Member::currentUser();
 		$updatedByName = $updatedBy
 			? ($updatedBy->FirstName . ' ' . $updatedBy->Surname . ' (' . $updatedBy->Email . ')') : 'Unknown';
@@ -366,7 +366,7 @@ abstract class StateEngineField extends Enum {
 		if (is_numeric($actionOrRecipientEmailAddress)) {
 			// value is one of the self.EmailSystemAdmin, self.EmailAdmin etc constants
 			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin)) {
-				$this->emailer_send($sender, \Application::factory()->find_system_admin(), $subject, $noTemplateBody, $templates, $data);
+				$this->emailer_send($sender, \Application::find_system_admin(), $subject, $noTemplateBody, $templates, $data);
 			}
 			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailAdmin)) {
 				$this->emailer_send($sender, \Email::config()->get('admin_email'), $subject, $noTemplateBody, $templates, $data);

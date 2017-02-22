@@ -23,7 +23,7 @@ class Code extends UniqueField {
 	const Name       = 'Code';
 	// const Schema     = 'Varchar(5)';
 
-	public function cmsFields($mode) {
+	public function cmsField($mode = null) {
 		if ($this()->isInDB()) {
 			return [
 				new ReadonlyField(self::Name . 'RO', 'Unique Code', $this()->{self::Name}),
