@@ -14,7 +14,7 @@ class UniqueField extends TypedField implements StringType {
 	 */
 	public function cmsField($mode = null) {
 		return [
-			new \ReadonlyField(static::Name)
+			new \ReadonlyField(static::field_name())
 		];
 	}
 

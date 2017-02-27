@@ -99,7 +99,7 @@ class TimeStamp extends TypedField implements ValueGenerator, NumericType {
 	 */
 	public function onBeforeWrite() {
 		if ($this->shouldGenerate()) {
-			$this()->{static::Name} = $this->now();
+			$this()->{static::field_name()} = $this->now();
 		}
 	}
 

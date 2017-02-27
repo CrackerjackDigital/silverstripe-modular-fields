@@ -161,16 +161,20 @@ abstract class StateEngineField extends Enum {
 	 * @return array
 	 */
 	public function extraStatics($class = null, $extension = null) {
+		$parent = parent::extraStatics($class, $extension) ?: [];
+
 		return array_merge_recursive(
-			parent::extraStatics($class, $extension) ?: [],
 			[
 				'db'      => [
 					static::updated_date_field_name() => 'SS_DateTime',
-				],
+				]
+			],
+			[
 				'has_one' => [
 					static::updated_by_field_name() => 'Member',
 				],
-			]
+			],
+			$parent
 		);
 	}
 
@@ -187,27 +191,42 @@ abstract class StateEngineField extends Enum {
 		]);
 	}
 
+	/**
+	 * @return string e.g. 'QueueStatusUpdatedDate'
+	 */
 	public static function updated_date_field_name() {
-		return parent::field_name(static::UpdatedDateFieldPostfix);
+		return parent::field_name('') . static::UpdatedDateFieldPostfix;
 	}
 
+	/**
+	 * @return string e.g. 'QueueStatusWatcherEmail'
+	 */
 	public static function watcher_email_field_name() {
-		return parent::field_name(static::WatcherEmailPostfix);
+		return parent::field_name('') . static::WatcherEmailPostfix;
 	}
 
+	/**
+	 * @param string $suffix
+	 * @return string e.g. 'QueueStatusUpdatedByID'
+	 */
 	public static function updated_by_field_name($suffix = '') {
-		$postfix = substr(static::UpdatedByFieldPostfix, -2) == 'ID' ? static::UpdatedByFieldPostfix
+		$postfix = substr(static::UpdatedByFieldPostfix, -2) == 'ID'
+			? static::UpdatedByFieldPostfix
 			: (static::UpdatedByFieldPostfix . 'ID');
 
-		return parent::field_name($postfix . $suffix);
+		return parent::field_name('') . $postfix . $suffix;
 	}
 
+	/**
+	 * @param string $suffix
+	 * @return string e.g. 'QueueStatusInitiatedByID'
+	 */
 	public static function initiated_by_field_name($suffix = '') {
 		$postfix = substr(static::InitiatedByFieldPostfix, -2) == 'ID'
 			? static::InitiatedByFieldPostfix
 			: (static::InitiatedByFieldPostfix . 'ID');
 
-		return parent::field_name($postfix . $suffix);
+		return parent::field_name('') . $postfix . $suffix;
 	}
 
 	/**

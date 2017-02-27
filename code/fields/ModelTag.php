@@ -2,8 +2,8 @@
 namespace Modular\Fields;
 
 use DataList;
-use Modular\Field;
 use Modular\Traits\reflection;
+use Modular\TypedField;
 use Modular\Types\StringType;
 
 /**
@@ -98,8 +98,8 @@ class ModelTag extends TypedField implements StringType {
 	 */
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
-		if (0 === strlen($this()->{static::Name})) {
-			$this()->{static::Name} = $this->generateValue();
+		if (0 === strlen($this()->{static::field_name()})) {
+			$this()->{static::field_name()} = $this->generateValue();
 		}
 	}
 
@@ -118,8 +118,8 @@ class ModelTag extends TypedField implements StringType {
 			if ($parent = $this()->{$this->parentIDFieldName}()) {
 				if ($parent->hasExtension('ModelTag')) {
 					$tag = $parent->HierarchicalModelTag() . $this->config()->get('hierarchical_tag_separator');
-				} elseif ($parent->hasField(static::Name)) {
-					$tag = $parent->{static::Name} . $this->config()->get('hierarchical_tag_separator');
+				} elseif ($parent->hasField(static::field_name())) {
+					$tag = $parent->{static::field_name()} . $this->config()->get('hierarchical_tag_separator');
 				} elseif ($this->fallbackFieldName && $parent->hasField($this->fallbackFieldName)) {
 					$tag = $parent->{$this->fallbackFieldName} . $this->config()->get('hierarchical_tag_separator');
 				}
@@ -184,7 +184,7 @@ class ModelTag extends TypedField implements StringType {
 		}
 		/** @var DataList $duplicate */
 		$duplicate = DataList::create($this()->ClassName)->filter([
-			static::Name => $urlSegment,
+			static::field_name() => $urlSegment,
 		]);
 
 		if ($parentID = $this->ParentID()) {

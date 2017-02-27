@@ -102,13 +102,16 @@ abstract class Options extends TypedField  {
 	 * @param string $suffix
 	 * @return mixed|string
 	 */
-	public static function field_name($suffix = 'ID') {
-		if (static::schema()) {
-			$name = parent::field_name($suffix);
+	public static function field_name($suffix = '') {
+		$schema = static::schema();
+
+		if (\ClassInfo::exists($schema)) {
+			// schema is a class so we want field with 'ID'
+			$name = parent::field_name('ID');
 		} else {
 			// if suffix is 'ID' then remove as that would probably be illegal
 			// you could force it by supplying IDID though that would be a smell
-			$name = parent::field_name($suffix == 'ID' ? substr($suffix, 0, -2) : $suffix);
+			$name = parent::field_name();
 		}
 		return $name;
 	}
@@ -137,7 +140,7 @@ abstract class Options extends TypedField  {
 				(func_num_args() >= 2) ? $override : $options
 			);
 
-		} else if ($schema = static::Schema) {
+		} else if ($schema = static::schema()) {
 
 			$optionFields = static::option_fields();
 

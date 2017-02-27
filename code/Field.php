@@ -43,7 +43,7 @@ abstract class Field extends ModelExtension {
 
 	// if Name and Schema are provided then they will be added to the
 	// config.db array by extraStatics
-	const Name   = '';
+	const Name = '';
 
 	const DefaultUploadFolderName = 'incoming';
 
@@ -51,7 +51,7 @@ abstract class Field extends ModelExtension {
 
 	const DefaultTabName = 'Root.Main';
 
-	const Arity = 1;
+	const Arity = 0;
 
 	// Zend_Locale_Format compatible format string, if blank then default for locale is used
 	private static $time_field_format = '';
@@ -89,11 +89,21 @@ abstract class Field extends ModelExtension {
 	}
 
 	/**
+	 * Return the schema of the remote field, e.g. 'Varchar(32)', 'Enum("a,b,c")' or 'Member'. This is set
+	 * in a Type, e.g. StringType if using modular-types or should be set in the concrete field implementation.
+	 * @return string
+	 */
+	public static function schema() {
+		return static::Schema;
+	}
+
+	/**
 	 * a validation.min of null is not required, otherwise required if validation.min !== 0
+	 *
 	 * @return bool
 	 */
 	public static function required() {
-		return is_null(static::min()) ? false : ( static::min() !== 0 );
+		return is_null(static::min()) ? false : (static::min() !== 0);
 	}
 
 	public static function min() {
@@ -145,7 +155,7 @@ abstract class Field extends ModelExtension {
 		if (static::field_name() && static::schema()) {
 			if ($dbField = $this()->dbObject(static::field_name())) {
 				if ($formField = $dbField->scaffoldFormField()) {
-					$fields[ static::Name ] = $formField;
+					$fields[ static::field_name() ] = $formField;
 				}
 			}
 		}
@@ -222,7 +232,7 @@ abstract class Field extends ModelExtension {
 	 * @return string
 	 */
 	public static function field_name($suffix = '') {
-		return static::Name ? ( static::Name . $suffix ) : '';
+		return static::Name ? (static::Name . $suffix) : '';
 	}
 
 	public static function readonly_field_name($suffix = 'RO') {
@@ -249,6 +259,7 @@ abstract class Field extends ModelExtension {
 		} else {
 			$fieldSchema = static::schema();
 		}
+		$statics = [];
 
 		// we want neither or both of name and schema
 		if (in_array(
@@ -265,14 +276,14 @@ abstract class Field extends ModelExtension {
 			]
 		)
 		) {
-			return array_merge_recursive(
+			$statics = array_merge_recursive(
 				$parent,
 				($fieldName && $fieldSchema)
 					? ['db' => [$fieldName => $fieldSchema]]
 					: []
 			);
 		}
-		return [];
+		return $statics;
 
 	}
 
@@ -282,13 +293,13 @@ abstract class Field extends ModelExtension {
 	 * @param array $fields
 	 */
 	public function updateSummaryFields(&$fields) {
-		if (static::Name) {
-			$fields[ static::Name ] = $this->fieldDecoration(
-				static::Name,
+		if (static::field_name()) {
+			$fields[ static::field_name() ] = $this->fieldDecoration(
+				static::field_name(),
 				'Label',
-				isset($fields[ static::Name ])
-					? $fields[ static::Name ]
-					: static::Name
+				isset($fields[ static::field_name() ])
+					? $fields[ static::field_name() ]
+					: static::field_name()
 			);
 		}
 	}
@@ -445,7 +456,7 @@ abstract class Field extends ModelExtension {
 	public function validate(ValidationResult $result) {
 		$this()->extend('onBeforeValidate', $result);
 
-		$messages  = [];
+		$messages = [];
 		$cmsFields = $this->cmsFields(HasMode::DefaultMode);
 
 		if ($cmsFields) {
@@ -453,18 +464,18 @@ abstract class Field extends ModelExtension {
 			// if one is defined all need to be defined
 			/** @var FormField $field */
 			foreach ($cmsFields as $field) {
-				$fieldName        = $field->getName();
+				$fieldName = $field->getName();
 				$fieldConstraints = $this->fieldConstraints(
 					$fieldName, [
-					0,
-					0,
-					'',
-				]
+						0,
+						0,
+						'',
+					]
 				);
 
 				//if there are no validation rules for this field, or they are 'empty' rules move onto the next one
 				if (!$fieldConstraints
-				    || $fieldConstraints == [
+					|| $fieldConstraints == [
 						0,
 						0,
 						'',
@@ -477,35 +488,35 @@ abstract class Field extends ModelExtension {
 				list($minlength, $maxlength, $pattern) = $fieldConstraints;
 
 				$lengthType = null;
-				$length     = 0;
+				$length = 0;
 
 				if ($this()->hasField($fieldName . 'ID')) {
 					// get the title before we append ID
 					$lengthType = $field->Title() ?: $fieldName;
 
 					$fieldName = $fieldName . 'ID';
-					$length    = $this()->$fieldName ? 1 : 0;
+					$length = $this()->$fieldName ? 1 : 0;
 
 				} elseif ($this()->hasMethod($fieldName)) {
 					if ($value = $this()->$fieldName()) {
 						if ($value instanceof SS_List) {
-							$length     = $value->count();
+							$length = $value->count();
 							$lengthType = $this()->i18n_plural_name();
 						}
 					}
-				} elseif (( substr($fieldName, -2, 2) == 'ID' ) && $this()->hasMethod(substr($fieldName, -2 - 2))) {
-					$length     = $this()->$fieldName();
+				} elseif ((substr($fieldName, -2, 2) == 'ID') && $this()->hasMethod(substr($fieldName, -2 - 2))) {
+					$length = $this()->$fieldName();
 					$lengthType = $this()->i18n_singular_name();
 				}
 				if (is_null($lengthType)) {
 					$value = $this()->$fieldName;
 
 					if (is_array($value)) {
-						$length     = count($value);
+						$length = count($value);
 						$lengthType = 'choice';
 					} else {
 						// need to strip tags to get a realistic length on html fields, just leave white-space out of count
-						$length     = $this->valueLength($value);
+						$length = $this->valueLength($value);
 						$lengthType = 'letter';
 					}
 				}
@@ -531,22 +542,22 @@ abstract class Field extends ModelExtension {
 				//validate that value falls between the min and max length
 				$lengthMessage = '';
 				if ($minlength != $maxlength) {
-					if ($minlength && ( $length < $minlength )) {
+					if ($minlength && ($length < $minlength)) {
 						if ($minlength == 1) {
 							$lengthMessage = 'be provided';
 						} else {
-							$lengthMessage = "have at least {minlength} $lengthType" . ( $minlength > 1 ? 's' : '' );
+							$lengthMessage = "have at least {minlength} $lengthType" . ($minlength > 1 ? 's' : '');
 						}
 					}
-					if ($maxlength && ( $length > $maxlength )) {
-						$lengthMessage = "have at most {maxlength} $lengthType" . ( $maxlength > 1 ? 's' : '' );
+					if ($maxlength && ($length > $maxlength)) {
+						$lengthMessage = "have at most {maxlength} $lengthType" . ($maxlength > 1 ? 's' : '');
 					}
 				} else {
-					if ($minlength && ( $length < $minlength )) {
+					if ($minlength && ($length < $minlength)) {
 						if ($minlength == 1) {
 							$lengthMessage = 'be provided';
 						} else {
-							$lengthMessage = "{minlength} $lengthType" . ( $minlength > 1 ? 's' : '' );;
+							$lengthMessage = "{minlength} $lengthType" . ($minlength > 1 ? 's' : '');;
 						}
 					}
 				}
@@ -636,8 +647,8 @@ abstract class Field extends ModelExtension {
 	protected function configureDateField(DateField $field, $showMultipleFields = true) {
 		if ($showMultipleFields) {
 			$field->setConfig('dmyfields', true)
-			      ->setConfig('dmyseparator', ' / ')// set the separator
-			      ->setConfig('dmyplaceholders', 'true'); // enable HTML 5 Placeholders
+				->setConfig('dmyseparator', ' / ')// set the separator
+				->setConfig('dmyplaceholders', 'true'); // enable HTML 5 Placeholders
 		}
 
 		return $field;
@@ -692,7 +703,7 @@ abstract class Field extends ModelExtension {
 			$this->config()->get(static::ValidationRulesConfigVarName) ?: [],
 			$this()->config()->get(static::ValidationRulesConfigVarName) ?: []
 		);
-		$constraints          = $defaults;;
+		$constraints = $defaults;;
 
 		foreach ([
 			         $fieldName,
@@ -702,10 +713,10 @@ abstract class Field extends ModelExtension {
 				if (is_bool($allFieldsConstraints[ $name ])) {
 					// use the boolean as the min length, could be 0 or 1 which is enough
 					$constraints = [
-						               (int)$allFieldsConstraints[ $name ],
-						               0,
-						               '',
-					               ] + $defaults;
+							(int) $allFieldsConstraints[ $name ],
+							0,
+							'',
+						] + $defaults;
 				} else {
 					// presume it's an array or something else we handle
 					$constraints = $allFieldsConstraints[ $name ];
@@ -719,9 +730,9 @@ abstract class Field extends ModelExtension {
 
 	protected function saveMasterHint() {
 		return new LiteralField(
-			static::Name . 'Hint',
+			static::field_name() . 'Hint',
 			$this->fieldDecoration(
-				static::Name,
+				static::field_name(),
 				'SaveMasterHint',
 				"<b>Please save the master first</b>"
 			)

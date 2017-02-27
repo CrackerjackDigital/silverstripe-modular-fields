@@ -27,7 +27,7 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 			parent::extraStatics($class, $extension) ?: [],
 			[
 				'validation' => [
-					static::Name => static::DateRequired,
+					static::field_name() => static::DateRequired,
 				]
 			]
 		);
@@ -48,11 +48,11 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	 */
 	public function onBeforeValidate(\ValidationResult $result) {
 		$postVars = \Controller::curr()->getRequest()->postVars();
-		if (isset($postVars[ static::Name ]) && is_array($postVars[ static::Name ])) {
-			$date = $postVars[ static::Name ];
+		if (isset($postVars[ static::field_name() ]) && is_array($postVars[ static::field_name() ])) {
+			$date = $postVars[ static::field_name() ];
 
 			if (count(array_filter($date)) == 3) {
-				$this()->{static::Name} = implode('-', [$date['year'], $date['month'], $date['day']]);
+				$this()->{static::field_name()} = implode('-', [$date['year'], $date['month'], $date['day']]);
 			}
 		}
 	}
@@ -78,7 +78,7 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	 * @param array $fields
 	 */
 	public function updateSummaryFields(&$fields) {
-		$fields[ static::Name ] = $this->fieldDecoration(static::Name);
+		$fields[ static::field_name() ] = $this->fieldDecoration(static::field_name());
 	}
 
 	/**
@@ -92,13 +92,13 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 		if (static::ShowTimeField) {
 			return [
 				DTField::create(
-					static::Name
+					static::field_name()
 				),
 			];
 		} else {
 			return [
 				DField::create(
-					static::Name
+					static::field_name()
 				),
 			];
 		}
@@ -112,7 +112,7 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	 */
 	public function customFieldConstraints(\FormField $field, array $allFieldConstraints) {
 		/** @var DField $field */
-		if ($field->getName() == static::Name) {
+		if ($field->getName() == static::field_name()) {
 			if ($field instanceof DTField) {
 				$this->configureDateTimeField($field, static::ShowSeparateFields);
 			} else {

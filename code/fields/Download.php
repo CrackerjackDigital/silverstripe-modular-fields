@@ -16,7 +16,7 @@ class Download extends File {
 
 
 	public function Files() {
-		return new \ArrayList(array_filter($this->{static::Name}()));
+		return new \ArrayList(array_filter($this->{static::field_name()}()));
 	}
 
 	public static function allowed_files() {

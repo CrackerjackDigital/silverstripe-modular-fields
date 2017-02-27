@@ -9,7 +9,7 @@ abstract class UploadedFile extends \Modular\TypedField {
 
 	public function onAfterPublish() {
 		/** @var \File|\Versioned $file */
-		foreach ($this->{static::Name}() as $file) {
+		foreach ($this->{static::field_name()}() as $file) {
 			if ($file && $file->hasExtension('Versioned')) {
 				$file->publish('Stage', 'Live', false);
 			}

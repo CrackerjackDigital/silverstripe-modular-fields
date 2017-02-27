@@ -10,7 +10,7 @@ class Description extends TypedField implements StringType {
 
 	public function cmsField($mode = null) {
 		return [
-			HtmlEditorField::create(static::Name)->setRows(5),
+			HtmlEditorField::create(static::field_name())->setRows(5),
 		];
 	}
 }

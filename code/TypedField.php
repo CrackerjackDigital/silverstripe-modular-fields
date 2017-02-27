@@ -1,18 +1,15 @@
 <?php
 namespace Modular;
 
+use Modular\Types\RefType;
 use Modular\Types\Type;
 
 abstract class TypedField extends Field implements Type {
 	public function extraStatics($class = null, $extension = null) {
-		return array_merge(
-			parent::extraStatics($class, $extension) ?: [],
-			[
-				'db' => [
-					static::field_name() => static::schema()
-				]
-			]
-		);
+		if (!$this instanceof RefType) {
+			// if not a ref-type then return the 'Field' which is a db static
+			return parent::extraStatics($class, $extension);
+		}
 	}
 
 	/**
