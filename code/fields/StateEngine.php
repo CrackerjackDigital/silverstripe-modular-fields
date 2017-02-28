@@ -385,7 +385,7 @@ abstract class StateEngineField extends Enum {
 		if (is_numeric($actionOrRecipientEmailAddress)) {
 			// value is one of the self.EmailSystemAdmin, self.EmailAdmin etc constants
 			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin)) {
-				$this->emailer_send($sender, \Application::find_system_admin(), $subject, $noTemplateBody, $templates, $data);
+				$this->emailer_send($sender, \Application::find_admin_email(), $subject, $noTemplateBody, $templates, $data);
 			}
 			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailAdmin)) {
 				$this->emailer_send($sender, \Email::config()->get('admin_email'), $subject, $noTemplateBody, $templates, $data);

@@ -1,7 +1,6 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\Fields\Flag;
 use Modular\Traits\enabler;
 
 /**
@@ -12,7 +11,7 @@ use Modular\Traits\enabler;
 class SystemData extends Flag {
 	use enabler;
 
-	const Name= 'SystemFlag';
+	const Name = 'SystemFlag';
 
 	// can be set to false if all values are required to be returned, e.g. when building the SocialEdgeType table
 	// we need to be able to check for existing System records.
