@@ -2,9 +2,9 @@
 namespace Modular;
 
 use Modular\Types\RefType;
-use Modular\Types\Type;
+use Modular\Types\TypeInterface;
 
-abstract class TypedField extends Field implements Type {
+abstract class TypedField extends Field implements TypeInterface {
 	public function extraStatics($class = null, $extension = null) {
 		if (!$this instanceof RefType) {
 			// if not a ref-type then return the 'Field' which is a db static
