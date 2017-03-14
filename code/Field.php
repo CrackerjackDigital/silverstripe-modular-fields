@@ -51,8 +51,6 @@ abstract class Field extends ModelExtension {
 
 	const DefaultTabName = 'Root.Main';
 
-	const Arity = 0;
-
 	// Zend_Locale_Format compatible format string, if blank then default for locale is used
 	private static $time_field_format = '';
 
