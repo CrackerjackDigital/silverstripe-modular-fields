@@ -4,7 +4,6 @@ namespace Modular\Fields;
 use FormField;
 use Modular\Field;
 use Modular\Interfaces\Arities;
-use Modular\Relationships\HasOne;
 use Modular\Traits\upload;
 use Modular\Types\FileType;
 use Modular\Types\RefOneType;
