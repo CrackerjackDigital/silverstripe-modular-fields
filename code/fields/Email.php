@@ -1,7 +1,6 @@
 <?php
 namespace Modular\Fields;
 
-class Email extends Formatted {
+class Email extends Formatted implements \Modular\Types\Formats\Email {
 	const Name = 'Email';
-	// const Schema = 'Varchar(255)';
 }
