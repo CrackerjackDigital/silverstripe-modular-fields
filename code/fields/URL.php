@@ -1,10 +1,10 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\Field;
-use Modular\Types\URNType;
+use Modular\TypedField;
+use Modular\Types\URLType;
 
-class URL extends TypedField implements URNType {
+class URL extends TypedField implements URLType {
 	const Name = 'URL';
 
 	/**
@@ -14,7 +14,7 @@ class URL extends TypedField implements URNType {
 	 * @throws \Modular\Exceptions\Exception
 	 */
 	public function typedValue($typeCast = null) {
-		$value = $this->singleFieldValue();
+		$value = $this->typedValue();
 		if (false == strpos($value, '://')) {
 			$value = "https://$value";
 		}

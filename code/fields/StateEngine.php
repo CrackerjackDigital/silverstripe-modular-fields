@@ -20,9 +20,9 @@ abstract class StateEngineField extends Enum {
 
 	// field names for an instance are the actual field name postfixed by one of these e.g. 'QueueStatusUpdatedDate' or 'QueueStatusInitiatedByID'
 	// more than one StateEngineField could exist on a model.
-	const InitiatedByFieldPostfix = 'InitiatedByID';
+	const InitiatedByFieldPostfix = 'InitiatedBy';
 	const UpdatedDateFieldPostfix = 'UpdatedDate';
-	const UpdatedByFieldPostfix   = 'UpdatedByID';
+	const UpdatedByFieldPostfix   = 'UpdatedBy';
 	const WatcherEmailPostfix     = 'WatcherEmail';
 
 	// extension method is called with this postfixed to the class name, e.g. 'StateChange'
@@ -80,33 +80,44 @@ abstract class StateEngineField extends Enum {
 	 * Adds a StateUpdated DateTime field to the model as well as the parent Enum field.
 	 *
 	 * @param $mode
+	 *
 	 * @return array
 	 */
-	public function cmsField($mode = null) {
-		$updatedBy = \Member::get()->byID($this()->{static::updated_by_field_name()}) ?: \Member::currentUser();
+	public function cmsField( $mode = null ) {
+		$updatedBy     = \Member::get()->byID( $this()->{static::updated_by_field_name()} ) ?: \Member::currentUser();
 		$updatedByName = $updatedBy
-			? ($updatedBy->FirstName . ' ' . $updatedBy->Surname . ' (' . $updatedBy->Email . ')') : 'Unknown';
+			? ( $updatedBy->FirstName . ' ' . $updatedBy->Surname . ' (' . $updatedBy->Email . ')' ) : 'Unknown';
 
-		$initiatedBy = \Member::get()->byID($this()->{static::initiated_by_field_name()}) ?: \Member::currentUser();
+		$initiatedBy     = \Member::get()->byID( $this()->{static::initiated_by_field_name()} ) ?: \Member::currentUser();
 		$initiatedByName = $initiatedBy
-			? ($initiatedBy->FirstName . ' ' . $initiatedBy->Surname . ' (' . $initiatedBy->Email . ')') : 'Unknown';
+			? ( $initiatedBy->FirstName . ' ' . $initiatedBy->Surname . ' (' . $initiatedBy->Email . ')' ) : 'Unknown';
 
 		$watcherEmails = $this->watcherEmails();
 
-		return array_merge(parent::cmsFields($mode), [
-			static::updated_date_field_name()     => $this->configureDateTimeField(new \DatetimeField(static::updated_date_field_name())),
-			static::initiated_by_field_name('RO') => new \ReadonlyField(static::initiated_by_field_name('RO'), 'Initiated By', $initiatedByName),
-			static::updated_by_field_name('RO')   => new \ReadonlyField(static::updated_by_field_name('RO'), 'Updated By', $updatedByName),
-			static::watcher_email_field_name()    => new \EmailField(static::watcher_email_field_name(), 'Watcher Email', current($watcherEmails)),
-		]);
+		return array_merge( parent::cmsFields( $mode ), [
+			static::updated_date_field_name()       => $this->configureDateTimeField( new \DatetimeField( static::updated_date_field_name() ) ),
+			static::initiated_by_field_name( 'RO' ) => new \ReadonlyField( static::initiated_by_field_name( 'RO' ), 'Initiated By', $initiatedByName ),
+			static::updated_by_field_name( 'RO' )   => new \ReadonlyField( static::updated_by_field_name( 'RO' ), 'Updated By', $updatedByName ),
+			static::watcher_email_field_name()      => new \EmailField( static::watcher_email_field_name(), 'Watcher Email', current( $watcherEmails ) ),
+		] );
 	}
 
 	/**
-	 * Return configured default_value or key of first option.
+	 * Return a default option value => display value map. As the value in a state engine will be an array,
+	 * we need to use the key instead for the value.
+	 *
 	 * @return mixed
 	 */
-	public static function default_value() {
-		return parent::default_value() ?: key(static::options());
+	public static function default_option() {
+		$option = parent::default_option();
+		if ( is_array( current( $option ) ) ) {
+			$option = [
+				key( $option ),
+				key( $option ),
+			];
+		}
+
+		return $option;
 	}
 
 	/**
@@ -119,17 +130,17 @@ abstract class StateEngineField extends Enum {
 		$options = static::options(
 			null,
 			array_combine(
-				array_keys(static::config()->get('options')),
-				array_keys(static::config()->get('options'))
+				array_keys( static::config()->get( 'options' ) ),
+				array_keys( static::config()->get( 'options' ) )
 			)
 		);
 
 		// only the first configured top-level state is allowed by default if no valid next state is found.
-		$next = [key($options) => key($options)];
+		$next = [ key( $options ) => key( $options ) ];
 
-		if ($this()->isInDB()) {
-			if ($current = $this()->{static::field_name()}) {
-				if (array_key_exists($current, $options)) {
+		if ( $this()->isInDB() ) {
+			if ( $current = $this()->{static::field_name()} ) {
+				if ( array_key_exists( $current, $options ) ) {
 					// create a map with next options as key and value
 					$next = array_combine(
 						$options[ $current ],
@@ -138,18 +149,19 @@ abstract class StateEngineField extends Enum {
 				} else {
 					// something went wrong, set state to show invalid with no value
 					$next = [
-						'' => 'INVALID'
+						'' => 'INVALID',
 					];
 				}
 			}
 		}
 		// now see if we can replace the values with lang strings
 		$next = array_map(
-			function($state) {
-				return _t(get_class() . ".$state", $state);
+			function ( $state ) {
+				return _t( get_class() . ".$state", $state );
 			},
 			$next
 		);
+
 		return $next;
 	}
 
@@ -158,16 +170,17 @@ abstract class StateEngineField extends Enum {
 	 *
 	 * @param null $class
 	 * @param null $extension
+	 *
 	 * @return array
 	 */
-	public function extraStatics($class = null, $extension = null) {
-		$parent = parent::extraStatics($class, $extension) ?: [];
+	public function extraStatics( $class = null, $extension = null ) {
+		$parent = parent::extraStatics( $class, $extension ) ?: [];
 
 		return array_merge_recursive(
 			[
-				'db'      => [
+				'db' => [
 					static::updated_date_field_name() => 'SS_DateTime',
-				]
+				],
 			],
 			[
 				'has_one' => [
@@ -184,49 +197,43 @@ abstract class StateEngineField extends Enum {
 	 * @return array
 	 */
 	public function watcherEmails() {
-		return array_filter([
+		return array_filter( [
 			$this()->{self::watcher_email_field_name()},
-			$this()->config()->get('state_engine_watcher_email'),
-			$this->config()->get('watcher_email'),
-		]);
+			$this()->config()->get( 'state_engine_watcher_email' ),
+			$this->config()->get( 'watcher_email' ),
+		] );
 	}
 
 	/**
 	 * @return string e.g. 'QueueStatusUpdatedDate'
 	 */
 	public static function updated_date_field_name() {
-		return parent::field_name('') . static::UpdatedDateFieldPostfix;
+		return parent::field_name( '' ) . static::UpdatedDateFieldPostfix;
 	}
 
 	/**
 	 * @return string e.g. 'QueueStatusWatcherEmail'
 	 */
 	public static function watcher_email_field_name() {
-		return parent::field_name('') . static::WatcherEmailPostfix;
+		return parent::field_name( '' ) . static::WatcherEmailPostfix;
 	}
 
 	/**
-	 * @param string $suffix
-	 * @return string e.g. 'QueueStatusUpdatedByID'
+	 * @param string $postfix
+	 *
+	 * @return string e.g. 'QueueStatusUpdatedBy'
 	 */
-	public static function updated_by_field_name($suffix = '') {
-		$postfix = substr(static::UpdatedByFieldPostfix, -2) == 'ID'
-			? static::UpdatedByFieldPostfix
-			: (static::UpdatedByFieldPostfix . 'ID');
-
-		return parent::field_name('') . $postfix . $suffix;
+	public static function updated_by_field_name( $postfix = '' ) {
+		return parent::field_name( '' ) . static::UpdatedByFieldPostfix . $postfix;
 	}
 
 	/**
-	 * @param string $suffix
+	 * @param string $postfix
+	 *
 	 * @return string e.g. 'QueueStatusInitiatedByID'
 	 */
-	public static function initiated_by_field_name($suffix = '') {
-		$postfix = substr(static::InitiatedByFieldPostfix, -2) == 'ID'
-			? static::InitiatedByFieldPostfix
-			: (static::InitiatedByFieldPostfix . 'ID');
-
-		return parent::field_name('') . $postfix . $suffix;
+	public static function initiated_by_field_name( $postfix = '' ) {
+		return parent::field_name( '' ) . static::InitiatedByFieldPostfix . $postfix;
 	}
 
 	/**
@@ -239,23 +246,24 @@ abstract class StateEngineField extends Enum {
 		$fieldName = static::field_name();
 
 		// previous value would have been set in parent onBeforeWrite method if there was one.
-		if ($this->previousValue($previousValue)) {
+		if ( $this->previousValue( $previousValue ) ) {
 			// this checks if state can change, will throw an exception if not
-			$this->checkStateChange(self::StateChanging, $previousValue, $this()->{$fieldName});
+			$this->checkStateChange( self::StateChanging, $previousValue, $this()->{$fieldName} );
 		}
-		if (!$this()->isInDB()) {
+		if ( ! $this()->isInDB() ) {
 			// if no value is set then set to a default
-			if (!$this()->hasValue($fieldName)) {
+			if ( ! $this()->hasValue( $fieldName ) ) {
 				$this()->{$fieldName} = static::default_value();
 			}
-			if (!$this()->{static::initiated_by_field_name()}) {
+			if ( ! $this()->{static::initiated_by_field_name()} ) {
 				// set the initiator to the current logged in Member or system admin e.g. for cli
 				$member = \Member::currentUser() ?: Application::system_admin();
+
 				$this()->{static::initiated_by_field_name()} = $member->ID;
 			}
 		} else {
 			// set the updater to the current logged in Member or system admin e.g. for cli
-			$member = \Member::currentUser() ?: Application::system_admin();
+			$member                                    = \Member::currentUser() ?: Application::system_admin();
 			$this()->{static::updated_by_field_name()} = $member->ID;
 		}
 	}
@@ -267,9 +275,9 @@ abstract class StateEngineField extends Enum {
 	 */
 	public function onAfterWrite() {
 		parent::onAfterWrite();
-		if ($this->previousValue($previousValue)) {
+		if ( $this->previousValue( $previousValue ) ) {
 			// will throw an exception if can't do it
-			$this->checkStateChange(self::StateChanged, $previousValue, $this()->{static::field_name()});
+			$this->checkStateChange( self::StateChanged, $previousValue, $this()->{static::field_name()} );
 		}
 	}
 
@@ -280,56 +288,58 @@ abstract class StateEngineField extends Enum {
 	 * @param string $event     i.e. 'StatusChanging', 'StatusChanged'
 	 * @param string $fromState e.g. 'Queued'
 	 * @param string $toState   e.g. 'Running'
+	 *
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function checkStateChange($event, $fromState, $toState) {
-		$fieldName = get_class($this);
+	public function checkStateChange( $event, $fromState, $toState ) {
+		$fieldName = get_class( $this );
 
 		// check model extensions accept the state change
-		$checkResults = $this()->invokeWithExtensions(static::StateChangeEventName, $event, $fieldName, $fromState, $toState) ?: [];
+		$checkResults = $this()->invokeWithExtensions( static::StateChangeEventName, $event, $fieldName, $fromState, $toState ) ?: [];
 
 		$states = $this->options();
 
 		// check we have the 'from' state
-		$checkResults["Invalid from state '$fromState'"] = $transitions = array_key_exists($fromState, $toState) ? $states[ $fromState ] : false;
+		$checkResults["Invalid from state '$fromState'"] = $transitions = array_key_exists( $fromState, $toState ) ? $states[ $fromState ] : false;
 
 		// check the 'to' state exists in the 'from' state transitions
-		if ($transitions) {
-			$checkResults["Invalid to state '$toState'"] = array_key_exists($toState, $transitions);
+		if ( $transitions ) {
+			$checkResults["Invalid to state '$toState'"] = array_key_exists( $toState, $transitions );
 		}
 
 		// check the result of canChangeState (may be overridden in implementation to perform additional checks)
-		$checkResults["canChangeState check"] = $this->canChangeState($event, $fromState, $toState);
+		$checkResults["canChangeState check"] = $this->canChangeState( $event, $fromState, $toState );
 
 		try {
 			// any false (strict checking) in results from extension call will cause a fail and so state change will not be saved
 			// any other result will be ignored and state transition will continue
-			foreach ($checkResults as $error => $eventResult) {
+			foreach ( $checkResults as $error => $eventResult ) {
 				// something returned false, we fail
-				if (is_bool($eventResult) && !$eventResult) {
-					$modelClass = get_class($this());
-					throw new Exception("$error for '$event' from '$fromState' to '$toState' on '$modelClass.$fieldName'");
+				if ( is_bool( $eventResult ) && ! $eventResult ) {
+					$modelClass = get_class( $this() );
+					throw new Exception( "$error for '$event' from '$fromState' to '$toState' on '$modelClass.$fieldName'" );
 				}
 			}
-		} catch (\Exception $e) {
-			$this->debug_fail($e);
+		} catch ( \Exception $e ) {
+			$this->debug_fail( $e );
 		}
 
-		if ($emails = $this->config()->get('notify_on_state_events')) {
-			if (isset($emails[ $toState ])) {
+		if ( $emails = $this->config()->get( 'notify_on_state_events' ) ) {
+			if ( isset( $emails[ $toState ] ) ) {
 				$actionOrEmailAddress = '';
 
-				if (is_array($emails[ $toState ])) {
-					if (isset($emails[ $toState ][ $fromState ])) {
+				if ( is_array( $emails[ $toState ] ) ) {
+					if ( isset( $emails[ $toState ][ $fromState ] ) ) {
 						$actionOrEmailAddress = $emails[ $toState ][ $fromState ];
 					}
 				} else {
 					$actionOrEmailAddress = $emails[ $toState ];
 				}
-				$this->sendStateChangeNotification($event, $fromState, $toState, $actionOrEmailAddress);
+				$this->sendStateChangeNotification( $event, $fromState, $toState, $actionOrEmailAddress );
 			}
 		}
+
 		return true;
 	}
 
@@ -339,9 +349,10 @@ abstract class StateEngineField extends Enum {
 	 * @param $event
 	 * @param $fromState
 	 * @param $toState
+	 *
 	 * @return bool
 	 */
-	public function canChangeState($event, $fromState, $toState) {
+	public function canChangeState( $event, $fromState, $toState ) {
 		return true;
 	}
 
@@ -351,23 +362,23 @@ abstract class StateEngineField extends Enum {
 	 * @param            $toState
 	 * @param int|string $actionOrRecipientEmailAddress one of the self.NotifyABC constants or an email address to send notification to.
 	 */
-	public function sendStateChangeNotification($event, $fromState, $toState, $actionOrRecipientEmailAddress) {
+	public function sendStateChangeNotification( $event, $fromState, $toState, $actionOrRecipientEmailAddress ) {
 		// e.g. 'JobStatus_Changed_Queued_Cancelled' or 'JobStatus_Changing_Running'
-		$fieldClass = get_class($this);
-		$modelClass = get_class($this());
-		$modelName = $this()->i18n_singular_name() ?: $modelClass;
-		$model = $this();
-		$modelID = $model->ID ?: 'new';
-		$initiatedBy = \Member::get()->byID($this()->{static::initiated_by_field_name()});
-		$updatedBy = \Member::get()->byID($this()->{static::updated_by_field_name()});
+		$fieldClass  = get_class( $this );
+		$modelClass  = get_class( $this() );
+		$modelName   = $this()->i18n_singular_name() ?: $modelClass;
+		$model       = $this();
+		$modelID     = $model->ID ?: 'new';
+		$initiatedBy = \Member::get()->byID( $this()->{static::initiated_by_field_name()} );
+		$updatedBy   = \Member::get()->byID( $this()->{static::updated_by_field_name()} );
 
-		$sender = \Member::currentUser() ?: \Application::member(\Application::Admin);
+		$sender = \Member::currentUser() ?: \Application::member( \Application::Admin );
 
-		$templates = [
-			implode('_', [$fieldClass, $event, $fromState, $toState]),
-			implode('_', [get_class($this), $event, $toState]),
+		$templates      = [
+			implode( '_', [ $fieldClass, $event, $fromState, $toState ] ),
+			implode( '_', [ get_class( $this ), $event, $toState ] ),
 		];
-		$data = [
+		$data           = [
 			'Model'       => $model,
 			'ModelName'   => $modelName,
 			'ModelID'     => $modelID,
@@ -377,27 +388,27 @@ abstract class StateEngineField extends Enum {
 			'ToState'     => $toState,
 			'UpdatedBy'   => $updatedBy,
 			'InitiatedBy' => $initiatedBy,
-			'Templates'   => implode(',', $templates),
+			'Templates'   => implode( ',', $templates ),
 		];
-		$subject = _t("$modelClass.$fieldClass.Email.Subject", "$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data);
-		$noTemplateBody = _t("$fieldClass.$modelName.Email.Body", "$$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data);
+		$subject        = _t( "$modelClass.$fieldClass.Email.Subject", "$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
+		$noTemplateBody = _t( "$fieldClass.$modelName.Email.Body", "$$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
 
-		if (is_numeric($actionOrRecipientEmailAddress)) {
+		if ( is_numeric( $actionOrRecipientEmailAddress ) ) {
 			// value is one of the self.EmailSystemAdmin, self.EmailAdmin etc constants
-			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin)) {
-				$this->send($sender, \Application::find_admin_email(), $subject, $noTemplateBody, $templates, $data);
+			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin ) ) {
+				$this->send( $sender, \Application::find_admin_email(), $subject, $noTemplateBody, $templates, $data );
 			}
-			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailAdmin)) {
-				$this->send($sender, \Email::config()->get('admin_email'), $subject, $noTemplateBody, $templates, $data);
+			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailAdmin ) ) {
+				$this->send( $sender, \Email::config()->get( 'admin_email' ), $subject, $noTemplateBody, $templates, $data );
 			}
-			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailInitiator) && $initiatedBy) {
-				$this->send($sender, $initiatedBy->Email, $subject, $noTemplateBody, $templates, $data);
+			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailInitiator ) && $initiatedBy ) {
+				$this->send( $sender, $initiatedBy->Email, $subject, $noTemplateBody, $templates, $data );
 			}
-			if ($this->testbits($actionOrRecipientEmailAddress, self::NotifyEmailUpdater) && $updatedBy) {
-				$this->send($sender, $updatedBy->Email, $subject, $noTemplateBody, $templates, $data);
+			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailUpdater ) && $updatedBy ) {
+				$this->send( $sender, $updatedBy->Email, $subject, $noTemplateBody, $templates, $data );
 			}
 		} else {
-			$this->send($sender, $actionOrRecipientEmailAddress, $subject, $noTemplateBody, $templates, $data);
+			$this->send( $sender, $actionOrRecipientEmailAddress, $subject, $noTemplateBody, $templates, $data );
 		}
 
 	}
@@ -406,23 +417,24 @@ abstract class StateEngineField extends Enum {
 	 * Check that the new state being requested is valid from the current state.
 	 *
 	 * @param \ValidationResult $result
+	 *
 	 * @return array
 	 * @throws \ValidationException
 	 */
-	public function validate(\ValidationResult $result) {
+	public function validate( \ValidationResult $result ) {
 		$fieldName = static::field_name();
 
-		if ($this()->isChanged($fieldName)) {
-			$states = static::config()->get('states');
+		if ( $this()->isChanged( $fieldName ) ) {
+			$states = static::config()->get( 'states' );
 
-			$new = $this()->{$fieldName};
+			$new      = $this()->{$fieldName};
 			$original = $this()->getChangedFields()[ $fieldName ]['before'];
 
-			if (!in_array($new, $states[ $original ])) {
-				$result->error(_t(static::field_name() . '.InvalidTransition', "Can't go from state '$original' to '$new'"));
+			if ( ! in_array( $new, $states[ $original ] ) ) {
+				$result->error( _t( static::field_name() . '.InvalidTransition', "Can't go from state '$original' to '$new'" ) );
 			}
 		}
 
-		return parent::validate($result);
+		return parent::validate( $result );
 	}
 }

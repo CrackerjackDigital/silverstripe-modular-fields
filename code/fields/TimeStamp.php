@@ -6,7 +6,7 @@ use Modular\Traits\generator;
 use Modular\TypedField;
 use Modular\Types\NumericType;
 
-class TimeStamp extends TypedField implements ValueGenerator, NumericType {
+class Timestamp extends TypedField implements ValueGenerator, NumericType {
 	use generator;
 	use \Modular\Traits\timestamp {
 		timestamp as generator;

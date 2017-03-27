@@ -5,6 +5,7 @@ use FormField;
 use Modular\Field;
 use Modular\Interfaces\Arities;
 use Modular\Traits\upload;
+use Modular\TypedField;
 use Modular\Types\FileType;
 use Modular\Types\RefOneType;
 use Modular\Types\URNType;
@@ -15,7 +16,7 @@ use UploadField;
  *
  * @package Modular\Fields
  */
-class File extends Field implements FileType, RefOneType {
+class File extends TypedField implements FileType, RefOneType {
 	use upload;
 
 	const Name                    = 'File';
