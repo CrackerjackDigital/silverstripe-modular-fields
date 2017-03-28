@@ -44,6 +44,13 @@ abstract class StateEngineField extends Enum {
 
 	private static $show_as = self::ShowAsDropdown;
 
+	// these should be set the 'end' states of the engine, e.g. 'Success' or 'Failed', though there could be
+	// valid transitions from them.
+	private static $halt_states = [];
+
+	// these should be set to the 'ready' states of the engine, e.g. 'Queued' or 'Ready' which means the state engine can be 'run'
+	private static $ready_states = [];
+
 	/**
 	 * Array of states to array of valid 'next' states.
 	 *
@@ -77,6 +84,24 @@ abstract class StateEngineField extends Enum {
 	];
 
 	/**
+	 * Return the states which mean the state engine has 'completed'
+	 *
+	 * @return array
+	 */
+	static public function halt_states() {
+		return static::config()->get( 'halt_states' ) ?: [];
+	}
+
+	/**
+	 * Return the states which mean the state engine is ready to run
+	 *
+	 * @return array
+	 */
+	static public function ready_states() {
+		return static::config()->get( 'ready_states' ) ?: [];
+	}
+
+	/**
 	 * Adds a StateUpdated DateTime field to the model as well as the parent Enum field.
 	 *
 	 * @param $mode
@@ -103,6 +128,172 @@ abstract class StateEngineField extends Enum {
 	}
 
 	/**
+	 * Before we write check the state transition, if any, is a valid one via checkStateChange method.
+	 *
+	 * @throws Exception
+	 */
+	public function onBeforeWrite() {
+		parent::onBeforeWrite();
+		$fieldName = static::field_name();
+
+		// previous value would have been set in parent onBeforeWrite method if there was one.
+		if ( $this->previousValue( $previousValue ) ) {
+			// this checks if state can change, will throw an exception if not
+			$this->checkStateChange( self::StateChanging, $previousValue, $this()->{$fieldName} );
+		}
+		if ( ! $this()->isInDB() ) {
+			// if no value is set then set to the default (key of first option)
+			if ( ! $this()->hasValue( $fieldName ) ) {
+				$this()->{$fieldName} = key( static::options() );
+			}
+			if ( ! $this()->{static::initiated_by_field_name()} ) {
+				// set the initiator to the current logged in Member or system admin e.g. for cli
+				$member = \Member::currentUser() ?: Application::system_admin();
+
+				$this()->{static::initiated_by_field_name()} = $member->ID;
+			}
+		} else {
+			// set the updater to the current logged in Member or system admin e.g. for cli
+			$member = \Member::currentUser() ?: Application::find_system_admin();
+
+			$this()->{static::updated_by_field_name()} = $member->ID;
+		}
+	}
+
+	/**
+	 * If there was a previous state and so state has changed then trigger a StateChanged event on the extended Model.
+	 *
+	 * @throws Exception
+	 */
+	public function onAfterWrite() {
+		parent::onAfterWrite();
+		if ( $this->previousValue( $previousValue ) ) {
+			// will throw an exception if can't do it
+			$this->checkStateChange( self::StateChanged, $previousValue, $this()->{static::field_name()} );
+		}
+	}
+
+	/**
+	 * Call extensions via self.StateChangeEventName with event (self.StatusChanging, self.StatusChanged), the field
+	 * name and the from and to status. If any handler returns boolean false (strictly) then an exception is thrown.
+	 *
+	 * @param string $event     i.e. 'StatusChanging', 'StatusChanged'
+	 * @param string $fromState e.g. 'Queued'
+	 * @param string $toState   e.g. 'Running'
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function checkStateChange( $event, $fromState, $toState ) {
+		$fieldName = get_class( $this );
+
+		// check model extensions accept the state change
+		$checkResults = $this()->invokeWithExtensions( static::StateChangeEventName, $event, $fieldName, $fromState, $toState ) ?: [];
+
+		// we want raw options not the 'nice' options
+		$states = $this->config()->get( 'options' );
+
+		// check we have the 'from' state
+		$checkResults["Invalid from state '$fromState'"] = $transitions = array_key_exists( $fromState, $toState ) ? $states[ $fromState ] : false;
+
+		// check the 'to' state exists in the 'from' state transitions
+		if ( $transitions ) {
+			$checkResults["Invalid to state '$toState'"] = array_key_exists( $toState, $transitions );
+		}
+
+		// check the result of canChangeState (may be overridden in implementation to perform additional checks)
+		$checkResults["canChangeState check"] = $this->canChangeState( $event, $fromState, $toState );
+
+		try {
+			// any false (strict checking) in results from extension call will cause a fail and so state change will not be saved
+			// any other result will be ignored and state transition will continue
+			foreach ( $checkResults as $error => $eventResult ) {
+				// something returned false, we fail
+				if ( is_bool( $eventResult ) && ! $eventResult ) {
+					$modelClass = get_class( $this() );
+					throw new Exception( "$error for '$event' from '$fromState' to '$toState' on '$modelClass.$fieldName'" );
+				}
+			}
+		} catch ( \Exception $e ) {
+			$this->debug_fail( $e );
+		}
+
+		if ( $emails = $this->config()->get( 'notify_on_state_events' ) ) {
+			if ( isset( $emails[ $toState ] ) ) {
+				$actionOrEmailAddress = '';
+
+				if ( is_array( $emails[ $toState ] ) ) {
+					if ( isset( $emails[ $toState ][ $fromState ] ) ) {
+						$actionOrEmailAddress = $emails[ $toState ][ $fromState ];
+					}
+				} else {
+					$actionOrEmailAddress = $emails[ $toState ];
+				}
+				$this->sendStateChangeNotification( $event, $fromState, $toState, $actionOrEmailAddress );
+			}
+		}
+
+		return true;
+	}
+	/**
+	 * @param            $event
+	 * @param            $fromState
+	 * @param            $toState
+	 * @param int|string $actionOrRecipientEmailAddress one of the self.NotifyABC constants or an email address to send notification to.
+	 */
+	public function sendStateChangeNotification( $event, $fromState, $toState, $actionOrRecipientEmailAddress ) {
+		// e.g. 'JobStatus_Changed_Queued_Cancelled' or 'JobStatus_Changing_Running'
+		$fieldClass  = get_class( $this );
+		$modelClass  = get_class( $this() );
+		$modelName   = $this()->i18n_singular_name() ?: $modelClass;
+		$model       = $this();
+		$modelID     = $model->ID ?: 'new';
+		$initiatedBy = \Member::get()->byID( $this()->{static::initiated_by_field_name()} );
+		$updatedBy   = \Member::get()->byID( $this()->{static::updated_by_field_name()} );
+
+		$sender = \Member::currentUser() ?: \Application::member( \Application::Admin );
+
+		$templates      = [
+			implode( '_', [ $fieldClass, $event, $fromState, $toState ] ),
+			implode( '_', [ get_class( $this ), $event, $toState ] ),
+		];
+		$data           = [
+			'Model'       => $model,
+			'ModelName'   => $modelName,
+			'ModelID'     => $modelID,
+			'FieldName'   => $fieldClass,
+			'Event'       => $event,
+			'FromState'   => $fromState,
+			'ToState'     => $toState,
+			'UpdatedBy'   => $updatedBy,
+			'InitiatedBy' => $initiatedBy,
+			'Templates'   => implode( ',', $templates ),
+		];
+		$subject        = _t( "$modelClass.$fieldClass.Email.Subject", "$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
+		$noTemplateBody = _t( "$fieldClass.$modelName.Email.Body", "$$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
+
+		if ( is_numeric( $actionOrRecipientEmailAddress ) ) {
+			// value is one of the self.EmailSystemAdmin, self.EmailAdmin etc constants
+			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin ) ) {
+				$this->send( $sender, \Application::find_admin_email(), $subject, $noTemplateBody, $templates, $data );
+			}
+			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailAdmin ) ) {
+				$this->send( $sender, \Email::config()->get( 'admin_email' ), $subject, $noTemplateBody, $templates, $data );
+			}
+			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailInitiator ) && $initiatedBy ) {
+				$this->send( $sender, $initiatedBy->Email, $subject, $noTemplateBody, $templates, $data );
+			}
+			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailUpdater ) && $updatedBy ) {
+				$this->send( $sender, $updatedBy->Email, $subject, $noTemplateBody, $templates, $data );
+			}
+		} else {
+			$this->send( $sender, $actionOrRecipientEmailAddress, $subject, $noTemplateBody, $templates, $data );
+		}
+
+	}
+
+
+	/**
 	 * Return a default option value => display value map. As the value in a state engine will be an array,
 	 * we need to use the key instead for the value.
 	 *
@@ -126,7 +317,7 @@ abstract class StateEngineField extends Enum {
 	 *
 	 * @return array
 	 */
-	public function optionMap() {
+	public function XoptionMap() {
 		$options = static::options(
 			null,
 			array_combine(
@@ -237,113 +428,6 @@ abstract class StateEngineField extends Enum {
 	}
 
 	/**
-	 * Before we write check the state transition, if any, is a valid one via checkStateChange method.
-	 *
-	 * @throws Exception
-	 */
-	public function onBeforeWrite() {
-		parent::onBeforeWrite();
-		$fieldName = static::field_name();
-
-		// previous value would have been set in parent onBeforeWrite method if there was one.
-		if ( $this->previousValue( $previousValue ) ) {
-			// this checks if state can change, will throw an exception if not
-			$this->checkStateChange( self::StateChanging, $previousValue, $this()->{$fieldName} );
-		}
-		if ( ! $this()->isInDB() ) {
-			// if no value is set then set to a default
-			if ( ! $this()->hasValue( $fieldName ) ) {
-				$this()->{$fieldName} = static::default_value();
-			}
-			if ( ! $this()->{static::initiated_by_field_name()} ) {
-				// set the initiator to the current logged in Member or system admin e.g. for cli
-				$member = \Member::currentUser() ?: Application::system_admin();
-
-				$this()->{static::initiated_by_field_name()} = $member->ID;
-			}
-		} else {
-			// set the updater to the current logged in Member or system admin e.g. for cli
-			$member                                    = \Member::currentUser() ?: Application::system_admin();
-			$this()->{static::updated_by_field_name()} = $member->ID;
-		}
-	}
-
-	/**
-	 * If there was a previous state and so state has changed then trigger a StateChanged event on the extended Model.
-	 *
-	 * @throws Exception
-	 */
-	public function onAfterWrite() {
-		parent::onAfterWrite();
-		if ( $this->previousValue( $previousValue ) ) {
-			// will throw an exception if can't do it
-			$this->checkStateChange( self::StateChanged, $previousValue, $this()->{static::field_name()} );
-		}
-	}
-
-	/**
-	 * Call extensions via self.StateChangeEventName with event (self.StatusChanging, self.StatusChanged), the field
-	 * name and the from and to status. If any handler returns boolean false (strictly) then an exception is thrown.
-	 *
-	 * @param string $event     i.e. 'StatusChanging', 'StatusChanged'
-	 * @param string $fromState e.g. 'Queued'
-	 * @param string $toState   e.g. 'Running'
-	 *
-	 * @return bool
-	 * @throws Exception
-	 */
-	public function checkStateChange( $event, $fromState, $toState ) {
-		$fieldName = get_class( $this );
-
-		// check model extensions accept the state change
-		$checkResults = $this()->invokeWithExtensions( static::StateChangeEventName, $event, $fieldName, $fromState, $toState ) ?: [];
-
-		$states = $this->options();
-
-		// check we have the 'from' state
-		$checkResults["Invalid from state '$fromState'"] = $transitions = array_key_exists( $fromState, $toState ) ? $states[ $fromState ] : false;
-
-		// check the 'to' state exists in the 'from' state transitions
-		if ( $transitions ) {
-			$checkResults["Invalid to state '$toState'"] = array_key_exists( $toState, $transitions );
-		}
-
-		// check the result of canChangeState (may be overridden in implementation to perform additional checks)
-		$checkResults["canChangeState check"] = $this->canChangeState( $event, $fromState, $toState );
-
-		try {
-			// any false (strict checking) in results from extension call will cause a fail and so state change will not be saved
-			// any other result will be ignored and state transition will continue
-			foreach ( $checkResults as $error => $eventResult ) {
-				// something returned false, we fail
-				if ( is_bool( $eventResult ) && ! $eventResult ) {
-					$modelClass = get_class( $this() );
-					throw new Exception( "$error for '$event' from '$fromState' to '$toState' on '$modelClass.$fieldName'" );
-				}
-			}
-		} catch ( \Exception $e ) {
-			$this->debug_fail( $e );
-		}
-
-		if ( $emails = $this->config()->get( 'notify_on_state_events' ) ) {
-			if ( isset( $emails[ $toState ] ) ) {
-				$actionOrEmailAddress = '';
-
-				if ( is_array( $emails[ $toState ] ) ) {
-					if ( isset( $emails[ $toState ][ $fromState ] ) ) {
-						$actionOrEmailAddress = $emails[ $toState ][ $fromState ];
-					}
-				} else {
-					$actionOrEmailAddress = $emails[ $toState ];
-				}
-				$this->sendStateChangeNotification( $event, $fromState, $toState, $actionOrEmailAddress );
-			}
-		}
-
-		return true;
-	}
-
-	/**
 	 * Hook in derived classes for custom checking logic (also see states method as alternative)
 	 *
 	 * @param $event
@@ -356,85 +440,4 @@ abstract class StateEngineField extends Enum {
 		return true;
 	}
 
-	/**
-	 * @param            $event
-	 * @param            $fromState
-	 * @param            $toState
-	 * @param int|string $actionOrRecipientEmailAddress one of the self.NotifyABC constants or an email address to send notification to.
-	 */
-	public function sendStateChangeNotification( $event, $fromState, $toState, $actionOrRecipientEmailAddress ) {
-		// e.g. 'JobStatus_Changed_Queued_Cancelled' or 'JobStatus_Changing_Running'
-		$fieldClass  = get_class( $this );
-		$modelClass  = get_class( $this() );
-		$modelName   = $this()->i18n_singular_name() ?: $modelClass;
-		$model       = $this();
-		$modelID     = $model->ID ?: 'new';
-		$initiatedBy = \Member::get()->byID( $this()->{static::initiated_by_field_name()} );
-		$updatedBy   = \Member::get()->byID( $this()->{static::updated_by_field_name()} );
-
-		$sender = \Member::currentUser() ?: \Application::member( \Application::Admin );
-
-		$templates      = [
-			implode( '_', [ $fieldClass, $event, $fromState, $toState ] ),
-			implode( '_', [ get_class( $this ), $event, $toState ] ),
-		];
-		$data           = [
-			'Model'       => $model,
-			'ModelName'   => $modelName,
-			'ModelID'     => $modelID,
-			'FieldName'   => $fieldClass,
-			'Event'       => $event,
-			'FromState'   => $fromState,
-			'ToState'     => $toState,
-			'UpdatedBy'   => $updatedBy,
-			'InitiatedBy' => $initiatedBy,
-			'Templates'   => implode( ',', $templates ),
-		];
-		$subject        = _t( "$modelClass.$fieldClass.Email.Subject", "$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
-		$noTemplateBody = _t( "$fieldClass.$modelName.Email.Body", "$$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
-
-		if ( is_numeric( $actionOrRecipientEmailAddress ) ) {
-			// value is one of the self.EmailSystemAdmin, self.EmailAdmin etc constants
-			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin ) ) {
-				$this->send( $sender, \Application::find_admin_email(), $subject, $noTemplateBody, $templates, $data );
-			}
-			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailAdmin ) ) {
-				$this->send( $sender, \Email::config()->get( 'admin_email' ), $subject, $noTemplateBody, $templates, $data );
-			}
-			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailInitiator ) && $initiatedBy ) {
-				$this->send( $sender, $initiatedBy->Email, $subject, $noTemplateBody, $templates, $data );
-			}
-			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailUpdater ) && $updatedBy ) {
-				$this->send( $sender, $updatedBy->Email, $subject, $noTemplateBody, $templates, $data );
-			}
-		} else {
-			$this->send( $sender, $actionOrRecipientEmailAddress, $subject, $noTemplateBody, $templates, $data );
-		}
-
-	}
-
-	/**
-	 * Check that the new state being requested is valid from the current state.
-	 *
-	 * @param \ValidationResult $result
-	 *
-	 * @return array
-	 * @throws \ValidationException
-	 */
-	public function validate( \ValidationResult $result ) {
-		$fieldName = static::field_name();
-
-		if ( $this()->isChanged( $fieldName ) ) {
-			$states = static::config()->get( 'states' );
-
-			$new      = $this()->{$fieldName};
-			$original = $this()->getChangedFields()[ $fieldName ]['before'];
-
-			if ( ! in_array( $new, $states[ $original ] ) ) {
-				$result->error( _t( static::field_name() . '.InvalidTransition', "Can't go from state '$original' to '$new'" ) );
-			}
-		}
-
-		return parent::validate( $result );
-	}
 }

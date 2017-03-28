@@ -78,9 +78,9 @@ abstract class Options extends TypedField {
 	public static function default_option() {
 		$defaultValue = static::default_value();
 		$emptyString  = static::empty_string();
-		$options = static::config()->get('options');
+		$options      = static::config()->get( 'options' );
 
-		if ( !is_null($defaultValue) ) {
+		if ( ! is_null( $defaultValue ) ) {
 			// default value is set
 			if ( in_array( $defaultValue, static::config()->get( 'options' ) ?: [] ) ) {
 				// default value exists in options, use it and its value for display, or empty string as display if set
@@ -90,20 +90,21 @@ abstract class Options extends TypedField {
 			} else {
 				// default value doesn't exist in options, use it and empty string
 				$option = [
-					$defaultValue => $emptyString
+					$defaultValue => $emptyString,
 				];
 			}
-		} elseif (!is_null($emptyString)) {
+		} elseif ( ! is_null( $emptyString ) ) {
 			// no default value set, but empty string set, use null and emptyString
 			$option = [
-				null => $emptyString
+				null => $emptyString,
 			];
 		} else {
 			// no default value or empty string, use first options
 			$option = [
-				key($options) => current($options)
+				key( $options ) => current( $options ),
 			];
 		}
+
 		return $option;
 	}
 
@@ -131,7 +132,7 @@ abstract class Options extends TypedField {
 					static::options()
 				);
 				// if it is null then nothing will be set which is fine anyway
-				if ( $defaultValue = static::config()->get('default_value') ) {
+				if ( $defaultValue = static::config()->get( 'default_value' ) ) {
 					$field->setValue( $defaultValue );
 				}
 				break;
@@ -180,15 +181,43 @@ abstract class Options extends TypedField {
 	 * @return array
 	 */
 	public static function options( $default = [], $override = [] ) {
-		// try hard-coded options first, will init to an empty array if not set.
-		if ( $options = static::config()->get( 'options' ) ?: [] ) {
-			// will use override if it was passed
-			$options = array_map(
-				function ( $key ) {
-					return _t( get_called_class() . ".$key", $key );
-				},
-				array_keys(( func_num_args() >= 2 ) ? $override : $options)
-			);
+		// use override otherwise configured options
+		$options = $override ?: ( static::config()->get( 'options' ) ?: [] );
+
+		if ( $default ) {
+			// at least default passed
+			if ( is_array( $default ) ) {
+				if ( ! array_key_exists( key( reset( $default ) ), $options ) ) {
+					$options = $default + $options;
+				}
+			} else {
+				if ( ! array_key_exists( $default, $options ) ) {
+					$options = [ $default => $default ] + $options;
+				}
+			}
+		}
+
+		if ( $options ) {
+
+			if ( is_int( key( $options ) ) ) {
+				// just an array of values
+				$labels = array_map(
+					function ( $value ) {
+						return _t( get_called_class() . ".$value", $value );
+					},
+					$options
+				);
+			} else {
+				// map of key => value use the keys
+				$labels = array_map(
+					function ( $key ) {
+						return _t( get_called_class() . ".$key", $key );
+					},
+					array_keys($options)
+				);
+
+			}
+			$options = array_combine( array_keys($options), $labels);
 
 		} else if ( $schema = static::schema() ) {
 			// schema is another model not string values, us those models as the options
@@ -202,14 +231,6 @@ abstract class Options extends TypedField {
 				                      ->toArray();
 			}
 
-		}
-		if ( func_num_args() >= 1 ) {
-			// at least default passed
-			if ( is_array( $default ) ) {
-				if ( ! array_key_exists( key( reset( $default ) ), $options ) ) {
-					$options = $default + $options;
-				}
-			}
 		}
 
 		return $options;

@@ -21,32 +21,22 @@ class JSONData extends TypedField implements TextType, EncodedType {
 	}
 
 	/**
-	 * @param mixed $unencodedData to be encoded and set to the field
-	 */
-	public function setJSONData( $unencodedData ) {
-		$this()->{static::Name} = static::encode( $unencodedData );
-	}
-
-	/**
-	 * @return array|mixed json value from field decode to native value
-	 */
-	public function getJSONData() {
-		return static::decode( $this()->{static::Name} );
-	}
-
-	/**
 	 * Return json_decoded value of field on the extended model.
 	 *
-	 * @param null $typeCast not used
+	 * @param string $typeCast
 	 *
 	 * @return mixed
 	 * @throws \Modular\Exceptions\TypeException
 	 */
-	public function typedValue( $typeCast = null ) {
-		if ( is_null( $typeCast ) || $typeCast == TextType::Type ) {
-			return static::decode( $this()->{static::Name} );
-		} elseif ( $typeCast == 'Encoded' ) {
-			return static::encode( $this()->{static::Name} );
+	public function typedValue( $typeCast = '' ) {
+		$value = $this()->{static::Name};
+
+		if ( $typeCast == '' ) {
+			// return json as php value
+			return static::decode( $value );
+		} elseif ( $typeCast == TextType::Type ) {
+			// return verbatim
+			return $value;
 		} else {
 			throw new Exception( "Typecast must be 'Text' or 'Encoded' if passed" );
 		}
@@ -60,7 +50,7 @@ class JSONData extends TypedField implements TextType, EncodedType {
 	 * @return string
 	 */
 	public static function encode( $value ) {
-		if ( is_string( $value ) ) {
+		if ( $value && is_string( $value ) ) {
 			// if we're not a javascript array or object or 'null' or number then surround with quotes if not already
 			if ( trim( trim( $value ), '{[]}' ) == $value ) {
 				if ( ! in_array( $value, [ 'null', 'true', 'false' ] ) && ! is_numeric( $value ) ) {

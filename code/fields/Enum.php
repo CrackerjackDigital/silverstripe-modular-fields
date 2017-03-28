@@ -6,15 +6,21 @@ use Modular\Types\OptionType;
 abstract class Enum extends Options implements OptionType {
 
 	/**
-	 * For an enum field the schema is an Enum of all options. Numeric enum values are not allowed.
+	 * For an enum field the schema is an Enum of the keys of the top level options.
 	 *
 	 * @return string
 	 */
 	public static function schema() {
-		if ($options = array_filter(static::options())) {
-			return "Enum('" . implode(',', $options) . "')";
+		$schema = '';
+		if ($options = static::options()) {
+			if (is_int(key($options))) {
+				$options = array_values( $options );
+			} else {
+				$options = array_keys( $options );
+			}
+			$schema = "Enum('" . implode( ',', $options ) . "','" . current( $options ) . "')";
 		}
-		return '';
+		return $schema;
 	}
 
 }

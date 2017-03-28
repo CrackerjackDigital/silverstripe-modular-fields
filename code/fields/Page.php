@@ -1,10 +1,8 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\TypedField;
-use Modular\Types\RefOneType;
-
-class Page extends TypedField implements RefOneType {
+class Page extends RefOneField {
 	const Name   = 'Page';
 	const Schema = 'Page';
+
 }

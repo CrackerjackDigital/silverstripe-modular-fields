@@ -22,6 +22,15 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	const DateRequired = true;
 	const TimeRequired = false;
 
+	const DefaultNow = true;
+
+	/**
+	 * Add validation based on self.DateRequired
+	 * @param null $class
+	 * @param null $extension
+	 *
+	 * @return array
+	 */
 	public function extraStatics($class = null, $extension = null) {
 		return array_merge_recursive(
 			parent::extraStatics($class, $extension) ?: [],
@@ -43,10 +52,11 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 
 	/**
 	 * Hack to get multiple year, month, day values into the models date field if present as an array in the post data.
+	 * Sets to now() if new record, value is not set and self.DefaultNow is true and either Date or Time is required
 	 *
 	 * @param \ValidationResult $result
 	 */
-	public function onBeforeValidate(\ValidationResult $result) {
+	public function onBeforeValidate() {
 		$postVars = \Controller::curr()->getRequest()->postVars();
 		if (isset($postVars[ static::field_name() ]) && is_array($postVars[ static::field_name() ])) {
 			$date = $postVars[ static::field_name() ];
@@ -54,6 +64,9 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 			if (count(array_filter($date)) == 3) {
 				$this()->{static::field_name()} = implode('-', [$date['year'], $date['month'], $date['day']]);
 			}
+		}
+		if ( static::DefaultNow && ( static::DateRequired || static::TimeRequired ) &&  !$this()->{static::Name} && ! $this()->isInDB() ) {
+			$this()->{static::Name} = static::now();
 		}
 	}
 

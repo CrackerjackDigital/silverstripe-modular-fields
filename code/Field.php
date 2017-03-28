@@ -238,7 +238,7 @@ abstract class Field extends ModelExtension {
 	 * @return string
 	 */
 	public static function field_name( $suffix = '' ) {
-		return static::Name ? ( static::Name . $suffix ) : current( array_reverse( explode( '\\', get_called_class(), 2 ) ) );
+		return (static::Name ? ( static::Name ) : current( array_reverse( explode( '\\', get_called_class() ) ) )) . $suffix;
 	}
 
 	public static function readonly_field_name( $suffix = 'RO' ) {

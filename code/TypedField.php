@@ -1,15 +1,20 @@
 <?php
 namespace Modular;
 
+use Modular\Types\RefOneType;
 use Modular\Types\RefType;
 use Modular\Types\TypeInterface;
 
 abstract class TypedField extends Field implements TypeInterface {
 	public function extraStatics($class = null, $extension = null) {
 		if (!$this instanceof RefType) {
-			// if not a ref-type then return the 'Field' which is a db static
-			return parent::extraStatics($class, $extension);
+			return parent::extraStatics( $class, $extension );
 		}
+	}
+
+	public function onBeforeValidate() {
+		// TODO validate by Type
+		return true;
 	}
 
 	/**
