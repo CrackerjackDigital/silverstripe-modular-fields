@@ -5,6 +5,7 @@ use Modular\TypedField;
 use Modular\Types\RefOneType;
 
 class RefOneField extends TypedField implements RefOneType {
+	const IDFieldSuffix = 'ID';
 	/**
 	 * Add has_one relationships to related class.
 	 *
@@ -33,7 +34,7 @@ class RefOneField extends TypedField implements RefOneType {
 	 *
 	 * @return string
 	 */
-	public static function field_name( $suffix = 'ID' ) {
+	public static function field_name( $suffix = self::IDFieldSuffix ) {
 		return parent::field_name($suffix);
 	}
 
@@ -44,7 +45,7 @@ class RefOneField extends TypedField implements RefOneType {
 	 *
 	 * @return string
 	 */
-	public static function related_field_name( $suffix = 'ID' ) {
+	public static function related_field_name( $suffix = self::IDFieldSuffix ) {
 		return static::field_name($suffix);
 	}
 

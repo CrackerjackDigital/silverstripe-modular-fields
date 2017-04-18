@@ -1,4 +1,5 @@
 <?php
+
 namespace Modular\Fields;
 
 use Modular\Application;
@@ -93,7 +94,7 @@ abstract class StateEngineField extends Enum {
 	}
 
 	/**
-	 * Return the states which mean the state engine is ready to run
+	 * Return the states which mean the state engine is ready to run, e.g. by a task which runs QueuedTasks
 	 *
 	 * @return array
 	 */
@@ -107,6 +108,7 @@ abstract class StateEngineField extends Enum {
 	 * @param $mode
 	 *
 	 * @return array
+	 * @throws \InvalidArgumentException
 	 */
 	public function cmsField( $mode = null ) {
 		$updatedBy     = \Member::get()->byID( $this()->{static::updated_by_field_name()} ) ?: \Member::currentUser();
@@ -148,15 +150,17 @@ abstract class StateEngineField extends Enum {
 			}
 			if ( ! $this()->{static::initiated_by_field_name()} ) {
 				// set the initiator to the current logged in Member or system admin e.g. for cli
-				$member = \Member::currentUser() ?: Application::system_admin();
+				if ( $member = \Member::currentUser() ?: Application::find_system_admin() ) {
+					$this()->{static::initiated_by_field_name()} = $member->ID;
+				}
 
-				$this()->{static::initiated_by_field_name()} = $member->ID;
 			}
 		} else {
 			// set the updater to the current logged in Member or system admin e.g. for cli
-			$member = \Member::currentUser() ?: Application::find_system_admin();
+			if ( $member = \Member::currentUser() ?: Application::find_system_admin() ) {
+				$this()->{static::updated_by_field_name()} = $member->ID;
+			}
 
-			$this()->{static::updated_by_field_name()} = $member->ID;
 		}
 	}
 
@@ -182,7 +186,9 @@ abstract class StateEngineField extends Enum {
 	 * @param string $toState   e.g. 'Running'
 	 *
 	 * @return bool
-	 * @throws Exception
+	 * @throws \InvalidArgumentException
+	 * @throws \Modular\Exceptions\Exception
+	 * @throws null
 	 */
 	public function checkStateChange( $event, $fromState, $toState ) {
 		$fieldName = get_class( $this );
@@ -235,11 +241,15 @@ abstract class StateEngineField extends Enum {
 
 		return true;
 	}
+
 	/**
 	 * @param            $event
 	 * @param            $fromState
 	 * @param            $toState
 	 * @param int|string $actionOrRecipientEmailAddress one of the self.NotifyABC constants or an email address to send notification to.
+	 *
+	 * @throws \InvalidArgumentException
+	 * @throws null
 	 */
 	public function sendStateChangeNotification( $event, $fromState, $toState, $actionOrRecipientEmailAddress ) {
 		// e.g. 'JobStatus_Changed_Queued_Cancelled' or 'JobStatus_Changing_Running'
@@ -291,7 +301,6 @@ abstract class StateEngineField extends Enum {
 		}
 
 	}
-
 
 	/**
 	 * Return a default option value => display value map. As the value in a state engine will be an array,

@@ -1,4 +1,5 @@
 <?php
+
 namespace Modular;
 
 use DateField;
@@ -118,6 +119,36 @@ abstract class Field extends ModelExtension {
 	}
 
 	/**
+	 * Return validation rules for this field as a map.
+	 *
+	 * @param bool|mixed $fieldNameKey  if boolean true include the field name as a key and the rules as a value,
+	 *                                  if a string then use the value as the key,
+	 *                                  otherwise is falsish so return just the rules as map
+	 *
+	 * @return array
+	 */
+	public function validationRules( $fieldNameKey = false ) {
+		$rules = [
+			'min'   => $this->min(),
+			'max'   => $this->max(),
+			'regex' => $this->regex(),
+		];
+		if ( $fieldNameKey ) {
+			if ( is_bool( $fieldNameKey ) ) {
+				$rules = [
+					static::field_name() => $rules,
+				];
+			} else {
+				$rules = [
+					$fieldNameKey => $rules,
+				];
+			}
+		}
+
+		return $rules;
+	}
+
+	/**
 	 * @param mixed|null $set if provided sets the value on the model for SingleFieldValue and return this, otherwise
 	 *                        returns the models SingleFieldValue.
 	 *
@@ -155,8 +186,12 @@ abstract class Field extends ModelExtension {
 
 		if ( static::field_name() && static::schema() ) {
 			if ( $dbField = $this()->dbObject( static::field_name() ) ) {
-				if ( $formField = $dbField->scaffoldFormField() ) {
-					$fields[ static::field_name() ] = $formField;
+				try {
+					if ( $formField = $dbField->scaffoldFormField() ) {
+						$fields[ static::field_name() ] = $formField;
+					}
+				} catch (\Exception $e) {
+					// something prevented scaffolding, we shouldn't be too concerned but note that field won't show
 				}
 			}
 		}
@@ -238,7 +273,7 @@ abstract class Field extends ModelExtension {
 	 * @return string
 	 */
 	public static function field_name( $suffix = '' ) {
-		return (static::Name ? ( static::Name ) : current( array_reverse( explode( '\\', get_called_class() ) ) )) . $suffix;
+		return ( static::Name ? ( static::Name ) : current( array_reverse( explode( '\\', get_called_class() ) ) ) ) . $suffix;
 	}
 
 	public static function readonly_field_name( $suffix = 'RO' ) {
