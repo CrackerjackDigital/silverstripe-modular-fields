@@ -7,15 +7,24 @@ namespace Modular\Fields;
  *
  * @package Modular\Fields
  */
-class RefOneAnyField extends RefOneField {
+abstract class RefOneAnyField extends RefOneField {
 	const Schema = 'DataObject';
 
 	public function cmsFields( $mode = null ) {
-		$field = \PolymorphicForeignKey::create( static::field_name( '' ), $this() );
+		$field = \PolymorphicForeignKey::create( static::field_name( '' ) );
 
 		$fields[ static::field_name( '' ) ] = $field;
 
 		return $fields;
+	}
+
+	/**
+	 * Return the name of the field used to store the class of the referenced model.
+	 *
+	 * @return string
+	 */
+	public static function class_field_name() {
+		return static::field_name( 'Class' );
 	}
 
 }

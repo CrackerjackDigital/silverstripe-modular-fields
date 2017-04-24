@@ -1,6 +1,8 @@
 <?php
 namespace Modular\Fields;
 
+use ArrayAccess;
+use ArrayObject;
 use Modular\TypedField;
 use Modular\Types\EncodedType;
 use Modular\Types\TextType;
@@ -18,6 +20,25 @@ class JSONData extends TypedField implements TextType, EncodedType {
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
 		$this()->{static::Name} = static::encode( $this()->{static::Name} );
+	}
+
+	/**
+	 * Return the value as an ArrayObject or class which implements ArrayAccess
+	 *
+	 * @param        $stringValue
+	 *
+	 * @param string $className
+	 *
+	 * @return ArrayAccess
+	 */
+	public static function object($stringValue, $className = ArrayObject::class) {
+		$value = static::decode( $stringValue);
+		if (is_null($value)) {
+			$value = [];
+		} else {
+			$value = [$value];
+		}
+		return new $className($value);
 	}
 
 	/**

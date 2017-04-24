@@ -67,6 +67,7 @@ abstract class Field extends ModelExtension {
 		'min'   => null,
 		'max'   => null,
 		'regex' => null,
+	    'method' => null
 	];
 
 	/**
@@ -190,7 +191,7 @@ abstract class Field extends ModelExtension {
 					if ( $formField = $dbField->scaffoldFormField() ) {
 						$fields[ static::field_name() ] = $formField;
 					}
-				} catch (\Exception $e) {
+				} catch ( \Exception $e ) {
 					// something prevented scaffolding, we shouldn't be too concerned but note that field won't show
 				}
 			}
@@ -510,9 +511,11 @@ abstract class Field extends ModelExtension {
 			foreach ( $cmsFields as $field ) {
 				$fieldName        = $field->getName();
 				$fieldConstraints = $this->fieldConstraints(
-					$fieldName, [
+					$fieldName,
+					[
 						0,
 						0,
+						'',
 						'',
 					]
 				);
@@ -523,13 +526,15 @@ abstract class Field extends ModelExtension {
 						0,
 						0,
 						'',
+						'',
 					]
 				) {
 					continue;
 				}
 
-				// deconstruct the constraints
-				list( $minlength, $maxlength, $pattern ) = $fieldConstraints;
+				// deconstruct the constraints, use array values to allow for map or numerically indexed array
+				// TODO implement method based validation for fields
+				list( $minlength, $maxlength, $regex, $method ) = array_values($fieldConstraints);
 
 				$lengthType = null;
 				$length     = 0;
@@ -565,18 +570,18 @@ abstract class Field extends ModelExtension {
 					}
 				}
 
-				if ( $pattern ) {
+				if ( $regex ) {
 					// set start and end pattern of '~' so we can use slashes in the config file
 					// and make regexps just a we bit more friendly.
-					$pattern = '~' . trim( $pattern, '/~' ) . '~';
+					$regex = '~' . trim( $regex, '/~' ) . '~';
 
-					if ( false === preg_match( $pattern, $value ) ) {
+					if ( false === preg_match( $regex, $value ) ) {
 						// add pattern error message to $messages
 						$messages[] = $this->fieldDecoration(
 							$fieldName,
 							"Format", "be in format {pattern}",
 							[
-								'pattern' => $pattern,
+								'pattern' => $regex,
 							],
 							$field
 						);
@@ -611,7 +616,7 @@ abstract class Field extends ModelExtension {
 						[
 							'minlength' => $minlength,
 							'maxlength' => $maxlength,
-							'pattern'   => $pattern,
+							'pattern'   => $regex,
 						],
 						$field
 					);
@@ -745,24 +750,22 @@ abstract class Field extends ModelExtension {
 	 * @return array
 	 */
 	public function fieldConstraints(
-		$fieldName, array $defaults = [
-		0,
-		0,
-		'',
-	]
+		$fieldName,
+		$defaults = [
+			0,              // min length (and required > 0)
+			0,              // max length (none if 0)
+			'',             // regular expression
+			'',             // method name to call to validate value
+		]
 	) {
 		$allFieldsConstraints = array_merge(
 			$this->config()->get( static::ValidationRulesConfigVarName ) ?: [],
 			$this()->config()->get( static::ValidationRulesConfigVarName ) ?: []
 		);
-		$constraints          = $defaults;;
 
-		foreach (
-			[
-				$fieldName,
-				$fieldName . 'ID',
-			] as $name
-		) {
+		$constraints = $defaults;;
+
+		foreach ( [ $fieldName, $fieldName . 'ID', ] as $name ) {
 			if ( isset( $allFieldsConstraints[ $name ] ) ) {
 				if ( is_bool( $allFieldsConstraints[ $name ] ) ) {
 					// use the boolean as the min length, could be 0 or 1 which is enough
