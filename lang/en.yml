@@ -14,11 +14,10 @@ en:
       Guide: 'Max 10 mins.'
   Modular\Fields\EventDate:
     EventDate:
-      Label: 'Narrative Date'
+      Label: 'Event Date'
   Modular\Fields\Image:
     ImageID:
       Label: "Image"
-      Guide: "Upload image to appear on timeline"
     AssociatedRecordsPrompt:
       Label: '<p>{plural} can only be associated to Content or Image events</p>'
   Modular\Fields\InternalLink:

@@ -6,13 +6,13 @@ use Modular\Traits\generator;
 use Modular\TypedField;
 use Modular\Types\NumericType;
 
-class Timestamp extends TypedField implements ValueGenerator, NumericType {
+class Timestamp extends TypedField implements ValueGenerator {
 	use generator;
 	use \Modular\Traits\timestamp {
 		timestamp as generator;
 	}
 	const Name   = 'TimeStamp';
-	// const Schema = 'Int';
+	const Schema = 'SS_DateTime';
 
 	const ShowAsAgoFlag = 3;            // always read only
 
@@ -46,6 +46,7 @@ class Timestamp extends TypedField implements ValueGenerator, NumericType {
 			$field,
 		];
 	}
+
 	/**
 	 * Return
 	 *  -ve     value if internal date is less than comparison date (so expired)

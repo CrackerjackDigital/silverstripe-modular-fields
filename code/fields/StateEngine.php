@@ -45,6 +45,10 @@ abstract class StateEngineField extends Enum {
 
 	private static $show_as = self::ShowAsDropdown;
 
+	// validate that a new state is valid given the existing state
+	// disable e.g. for testing other functionality. notifications are still done anyway if enabled.
+	private static $check_state_transitions = true;
+
 	// these should be set the 'end' states of the engine, e.g. 'Success' or 'Failed', though there could be
 	// valid transitions from them.
 	private static $halt_states = [];
@@ -52,12 +56,16 @@ abstract class StateEngineField extends Enum {
 	// these should be set to the 'ready' states of the engine, e.g. 'Queued' or 'Ready' which means the state engine can be 'run'
 	private static $ready_states = [];
 
+	// these should be set to the states that represent the task is running at the moment
+	private static $running_states = [];
+
 	/**
-	 * Array of states to array of valid 'next' states.
+	 * Map of states to of valid 'next' states.
 	 *
 	 * @var array
 	 */
 	private static $options = [
+		# e.g:
 		#   self::State1 => [
 		#       self::State2,
 		#       self::State4,
@@ -75,14 +83,23 @@ abstract class StateEngineField extends Enum {
 		#   ]
 	];
 
-	private static $notify_on_state_events = [
-		#   self::ToState1 => self::EmailSystemAdmin,
-		#   self::ToState2 => self::EmailAdmin,
+	// wether or not to send notifications as registered in notify_on_state_events
+	private static $notify_state_transitions = true;
+
+	// map of who to notify when a state transition occurs,
+	private static $state_transition_notifications = [
+		# examples:
+		#   self::ToState1 => self::NotifyEmailSystemAdmin,
+		#   self::ToState2 => self::NotifyEmailAdmin,
 		#   self::ToState3 => [
-		#       self::FromState1 => self::EmailAdmin,
-		#       self::FromState2 => self::EmailInitiator
+		#       self::FromState1 => self::NotifyEmailAdmin,
+		#       self::FromState2 => 'john@johns.com'
 		#   ]
 	];
+
+	public static function running_states() {
+		return static::config()->get( 'running_states' ) ?: [];
+	}
 
 	/**
 	 * Return the states which mean the state engine has 'completed'
@@ -191,54 +208,57 @@ abstract class StateEngineField extends Enum {
 	 * @throws null
 	 */
 	public function checkStateChange( $event, $fromState, $toState ) {
-		$fieldName = get_class( $this );
+		if ($this->config()->get('check_state_transitions')) {
 
-		// check model extensions accept the state change
-		$checkResults = $this()->invokeWithExtensions( static::StateChangeEventName, $event, $fieldName, $fromState, $toState ) ?: [];
+			$fieldName = get_class( $this );
 
-		// we want raw options not the 'nice' options
-		$states = $this->config()->get( 'options' );
+			// check model extensions accept the state change
+			$checkResults = $this()->invokeWithExtensions( static::StateChangeEventName, $event, $fieldName, $fromState, $toState ) ?: [];
 
-		// check we have the 'from' state
-		$checkResults["Invalid from state '$fromState'"] = $transitions = array_key_exists( $fromState, $toState ) ? $states[ $fromState ] : false;
+			// we want raw options not the 'nice' options
+			$states = $this->config()->get( 'options' );
 
-		// check the 'to' state exists in the 'from' state transitions
-		if ( $transitions ) {
-			$checkResults["Invalid to state '$toState'"] = array_key_exists( $toState, $transitions );
-		}
+			// check we have the 'from' state
+			$transitions = $checkResults["Invalid from state '$fromState'"] = array_key_exists( $fromState, $toState ) ? $states[ $fromState ] : false;
 
-		// check the result of canChangeState (may be overridden in implementation to perform additional checks)
-		$checkResults["canChangeState check"] = $this->canChangeState( $event, $fromState, $toState );
-
-		try {
-			// any false (strict checking) in results from extension call will cause a fail and so state change will not be saved
-			// any other result will be ignored and state transition will continue
-			foreach ( $checkResults as $error => $eventResult ) {
-				// something returned false, we fail
-				if ( is_bool( $eventResult ) && ! $eventResult ) {
-					$modelClass = get_class( $this() );
-					throw new Exception( "$error for '$event' from '$fromState' to '$toState' on '$modelClass.$fieldName'" );
-				}
+			// check the 'to' state exists in the 'from' state transitions
+			if ( $transitions ) {
+				$checkResults["Invalid to state '$toState'"] = array_key_exists( $toState, $transitions );
 			}
-		} catch ( \Exception $e ) {
-			$this->debug_fail( $e );
-		}
 
-		if ( $emails = $this->config()->get( 'notify_on_state_events' ) ) {
-			if ( isset( $emails[ $toState ] ) ) {
-				$actionOrEmailAddress = '';
+			// check the result of canChangeState (may be overridden in implementation to perform additional checks)
+			$checkResults["canChangeState check"] = $this->canChangeState( $event, $fromState, $toState );
 
-				if ( is_array( $emails[ $toState ] ) ) {
-					if ( isset( $emails[ $toState ][ $fromState ] ) ) {
-						$actionOrEmailAddress = $emails[ $toState ][ $fromState ];
+			try {
+				// any false (strict checking) in results from extension call will cause a fail and so state change will not be saved
+				// any other result will be ignored and state transition will continue
+				foreach ( $checkResults as $error => $eventResult ) {
+					// something returned false, we fail
+					if ( is_bool( $eventResult ) && ! $eventResult ) {
+						$modelClass = get_class( $this() );
+						throw new Exception( "$error for '$event' from '$fromState' to '$toState' on '$modelClass.$fieldName'" );
 					}
-				} else {
-					$actionOrEmailAddress = $emails[ $toState ];
 				}
-				$this->sendStateChangeNotification( $event, $fromState, $toState, $actionOrEmailAddress );
+			} catch ( \Exception $e ) {
+				$this->debug_fail( $e );
 			}
 		}
+		if ($this->config()->get('notify_state_transitions')) {
+			if ( $emails = $this->config()->get( 'notify_on_state_events' ) ) {
+				if ( isset( $emails[ $toState ] ) ) {
+					$actionOrEmailAddress = '';
 
+					if ( is_array( $emails[ $toState ] ) ) {
+						if ( isset( $emails[ $toState ][ $fromState ] ) ) {
+							$actionOrEmailAddress = $emails[ $toState ][ $fromState ];
+						}
+					} else {
+						$actionOrEmailAddress = $emails[ $toState ];
+					}
+					$this->sendStateChangeNotification( $event, $fromState, $toState, $actionOrEmailAddress );
+				}
+			}
+		}
 		return true;
 	}
 
@@ -252,52 +272,57 @@ abstract class StateEngineField extends Enum {
 	 * @throws null
 	 */
 	public function sendStateChangeNotification( $event, $fromState, $toState, $actionOrRecipientEmailAddress ) {
-		// e.g. 'JobStatus_Changed_Queued_Cancelled' or 'JobStatus_Changing_Running'
-		$fieldClass  = get_class( $this );
-		$modelClass  = get_class( $this() );
-		$modelName   = $this()->i18n_singular_name() ?: $modelClass;
-		$model       = $this();
-		$modelID     = $model->ID ?: 'new';
-		$initiatedBy = \Member::get()->byID( $this()->{static::initiated_by_field_name()} );
-		$updatedBy   = \Member::get()->byID( $this()->{static::updated_by_field_name()} );
+		if ($actionOrRecipientEmailAddress) {
 
-		$sender = \Member::currentUser() ?: \Application::member( \Application::Admin );
+			// e.g. 'JobStatus_Changed_Queued_Cancelled' or 'JobStatus_Changing_Running'
+			$fieldClass  = get_class( $this );
+			$modelClass  = get_class( $this() );
+			$modelName   = $this()->i18n_singular_name() ?: $modelClass;
+			$model       = $this();
+			$modelID     = $model->ID ?: 'new';
+			$initiatedBy = \Member::get()->byID( $this()->{static::initiated_by_field_name()} );
+			$updatedBy   = \Member::get()->byID( $this()->{static::updated_by_field_name()} );
 
-		$templates      = [
-			implode( '_', [ $fieldClass, $event, $fromState, $toState ] ),
-			implode( '_', [ get_class( $this ), $event, $toState ] ),
-		];
-		$data           = [
-			'Model'       => $model,
-			'ModelName'   => $modelName,
-			'ModelID'     => $modelID,
-			'FieldName'   => $fieldClass,
-			'Event'       => $event,
-			'FromState'   => $fromState,
-			'ToState'     => $toState,
-			'UpdatedBy'   => $updatedBy,
-			'InitiatedBy' => $initiatedBy,
-			'Templates'   => implode( ',', $templates ),
-		];
-		$subject        = _t( "$modelClass.$fieldClass.Email.Subject", "$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
-		$noTemplateBody = _t( "$fieldClass.$modelName.Email.Body", "$$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
+			$sender = \Member::currentUser() ?: \Application::member( \Application::Admin );
 
-		if ( is_numeric( $actionOrRecipientEmailAddress ) ) {
-			// value is one of the self.EmailSystemAdmin, self.EmailAdmin etc constants
-			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin ) ) {
-				$this->send( $sender, \Application::find_admin_email(), $subject, $noTemplateBody, $templates, $data );
+			$templates      = [
+				implode( '_', [ $fieldClass, $event, $fromState, $toState ] ),
+				implode( '_', [ get_class( $this ), $event, $toState ] ),
+			];
+			$data           = [
+				'Model'       => $model,
+				'ModelName'   => $modelName,
+				'ModelID'     => $modelID,
+				'FieldName'   => $fieldClass,
+				'Event'       => $event,
+				'FromState'   => $fromState,
+				'ToState'     => $toState,
+				'UpdatedBy'   => $updatedBy,
+				'InitiatedBy' => $initiatedBy,
+				'Templates'   => implode( ',', $templates ),
+			];
+			$subject        = _t( "$modelClass.$fieldClass.Email.Subject", "$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
+			$noTemplateBody = _t( "$fieldClass.$modelName.Email.Body", "$$modelName ($model->ID) '$model->Title' $event from $fromState to $toState", $data );
+
+			if ( is_numeric( $actionOrRecipientEmailAddress ) ) {
+				// value is one of the self.EmailSystemAdmin, self.EmailAdmin etc constants
+				if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailSystemAdmin ) ) {
+					$this->send( $sender, Application::admin_email(), $subject, $noTemplateBody, $templates, $data );
+				}
+				if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailAdmin ) ) {
+					$this->send( $sender, \Email::config()->get( 'admin_email' ), $subject, $noTemplateBody, $templates, $data );
+				}
+				if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailInitiator ) && $initiatedBy ) {
+					$this->send( $sender, $initiatedBy->Email, $subject, $noTemplateBody, $templates, $data );
+				}
+				if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailUpdater ) && $updatedBy ) {
+					$this->send( $sender, $updatedBy->Email, $subject, $noTemplateBody, $templates, $data );
+				}
+			} elseif (is_string($actionOrRecipientEmailAddress)) {
+				$this->send( $sender, $actionOrRecipientEmailAddress, $subject, $noTemplateBody, $templates, $data );
+			} else {
+				throw new \InvalidArgumentException("Invalid notification recipient");
 			}
-			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailAdmin ) ) {
-				$this->send( $sender, \Email::config()->get( 'admin_email' ), $subject, $noTemplateBody, $templates, $data );
-			}
-			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailInitiator ) && $initiatedBy ) {
-				$this->send( $sender, $initiatedBy->Email, $subject, $noTemplateBody, $templates, $data );
-			}
-			if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailUpdater ) && $updatedBy ) {
-				$this->send( $sender, $updatedBy->Email, $subject, $noTemplateBody, $templates, $data );
-			}
-		} else {
-			$this->send( $sender, $actionOrRecipientEmailAddress, $subject, $noTemplateBody, $templates, $data );
 		}
 
 	}

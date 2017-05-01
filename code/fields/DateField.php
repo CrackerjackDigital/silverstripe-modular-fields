@@ -54,7 +54,7 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	 * Hack to get multiple year, month, day values into the models date field if present as an array in the post data.
 	 * Sets to now() if new record, value is not set and self.DefaultNow is true and either Date or Time is required
 	 *
-	 * @param \ValidationResult $result
+	 * @return bool|void
 	 */
 	public function onBeforeValidate() {
 		$postVars = \Controller::curr()->getRequest()->postVars();
@@ -65,7 +65,9 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 				$this()->{static::field_name()} = implode('-', [$date['year'], $date['month'], $date['day']]);
 			}
 		}
-		if ( static::DefaultNow && ( static::DateRequired || static::TimeRequired ) &&  !$this()->{static::Name} && ! $this()->isInDB() ) {
+		if ( static::DefaultNow && ( static::DateRequired || static::TimeRequired )
+		     && !$this()->{static::Name} && ! $this()->isInDB() )
+		{
 			$this()->{static::Name} = static::now();
 		}
 	}
@@ -122,6 +124,8 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	 *
 	 * @param \FormField $field
 	 * @param array      $allFieldConstraints
+	 *
+	 * @throws \InvalidArgumentException
 	 */
 	public function customFieldConstraints(\FormField $field, array $allFieldConstraints) {
 		/** @var DField $field */
@@ -139,6 +143,9 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	 *
 	 * @param DField $field
 	 * @param bool   $showMultipleFields
+	 *
+	 * @return \DateField|void
+	 * @throws \InvalidArgumentException
 	 */
 	protected function configureDateField(DField $field, $showMultipleFields = true) {
 		if ($showMultipleFields) {
@@ -151,6 +158,8 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	/**
 	 * @param TField $field
 	 * @param bool   $showMultipleFields
+	 *
+	 * @return \TimeField|void
 	 */
 	protected function configureTimeField(TField $field, $showMultipleFields = true) {
 		if ($showMultipleFields) {
@@ -166,6 +175,9 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	 *
 	 * @param DTField $field
 	 * @param bool    $showMultipleFields
+	 *
+	 * @return \DatetimeField|void
+	 * @throws \InvalidArgumentException
 	 */
 	protected function configureDateTimeField(DTField $field, $showMultipleFields = true) {
 		if ($showMultipleFields) {
