@@ -10,11 +10,10 @@ use Modular\Types\StringType;
 class HashToken extends \Modular\TypedField implements ValueGenerator, StringType {
 	use generator;
 	use md5 {
-		md5 as generator;
+		hash as generator;
 	}
 
 	const Name = 'HashToken';
-	// const Schema = 'Varchar(128)';
 
 	private static $max_length = 128;
 
