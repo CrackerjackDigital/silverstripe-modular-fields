@@ -23,7 +23,7 @@ class FileModifiedStamp extends TypedField implements IntType {
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
 
-		if ( $this->fileChanged() ) {
+		if ( $this->fileChanged(true) ) {
 			$fullPathName = \Director::getAbsFile( $this()->Filename );
 
 			if ( file_exists( $fullPathName ) ) {
