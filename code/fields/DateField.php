@@ -47,7 +47,7 @@ abstract class DateTimeField extends TypedField implements DateTimeType {
 	 * @return false|string
 	 */
 	public static function now() {
-		return date('Y-m-d h:i:s');
+		return date('Y-m-d H:i:s');
 	}
 
 	/**
