@@ -38,6 +38,7 @@ abstract class Field extends ModelExtension {
 	use value;
 
 	const ShowAsReadOnlyFlag = 1;
+	const ShowAsHiddenFlag   = 2;
 
 	// used to generate a field name for tracking changes in this fields value in onAfterWrite
 	const PreviousFieldNamePrefix = '__';
@@ -52,6 +53,8 @@ abstract class Field extends ModelExtension {
 
 	const DefaultTabName = 'Root.Main';
 
+	const AdminTabName = 'Root.AdministratorFields';
+
 	// Zend_Locale_Format compatible format string, if blank then default for locale is used
 	private static $time_field_format = '';
 
@@ -60,14 +63,16 @@ abstract class Field extends ModelExtension {
 	// only show this field if the user is an admin
 	private static $admin_only = false;
 
-	// default show as no ShowAsABCFlag set
+	// default show as has no ShowAsABCFlag set so whatever default for field is
 	private static $show_as = 0;
 
+	private static $show_in_cms = true;
+
 	private static $validation = [
-		'min'   => null,
-		'max'   => null,
-		'regex' => null,
-	    'method' => null
+		'min'    => null,
+		'max'    => null,
+		'regex'  => null,
+		'method' => null,
 	];
 
 	/**
@@ -77,99 +82,6 @@ abstract class Field extends ModelExtension {
 	 */
 	public function __invoke() {
 		return $this->owner;
-	}
-
-	/**
-	 * Used to generate e.g. relationships, override Arity constant in derived classes.
-	 *
-	 * @return int
-	 */
-	public static function arity() {
-		return static::Arity;
-	}
-
-	/**
-	 * Return the schema of the remote field, e.g. 'Varchar(32)', 'Enum("a,b,c")' or 'Member'. This is set
-	 * in a Type, e.g. StringType if using modular-types or should be set in the concrete field implementation.
-	 *
-	 * @return string
-	 */
-	public static function schema() {
-		return static::Schema;
-	}
-
-	/**
-	 * a validation.min of null is not required, otherwise required if validation.min !== 0
-	 *
-	 * @return bool
-	 */
-	public static function required() {
-		return is_null( static::min() ) ? false : ( static::min() !== 0 );
-	}
-
-	public static function min() {
-		return static::get_config_setting( 'validation', 'min' );
-	}
-
-	public static function max() {
-		return static::get_config_setting( 'validation', 'max' );
-	}
-
-	public static function regex() {
-		return static::get_config_setting( 'validation', 'regex' );
-	}
-
-	/**
-	 * Return validation rules for this field as a map.
-	 *
-	 * @param bool|mixed $fieldNameKey  if boolean true include the field name as a key and the rules as a value,
-	 *                                  if a string then use the value as the key,
-	 *                                  otherwise is falsish so return just the rules as map
-	 *
-	 * @return array
-	 */
-	public function validationRules( $fieldNameKey = false ) {
-		$rules = [
-			'min'   => $this->min(),
-			'max'   => $this->max(),
-			'regex' => $this->regex(),
-		];
-		if ( $fieldNameKey ) {
-			if ( is_bool( $fieldNameKey ) ) {
-				$rules = [
-					static::field_name() => $rules,
-				];
-			} else {
-				$rules = [
-					$fieldNameKey => $rules,
-				];
-			}
-		}
-
-		return $rules;
-	}
-
-	/**
-	 * @param mixed|null $set if provided sets the value on the model for SingleFieldValue and return this, otherwise
-	 *                        returns the models SingleFieldValue.
-	 *
-	 * @return mixed
-	 * @throws Exception if Name constant is not set via late static binding
-	 * @getter-setter
-	 * @fluent-setter
-	 */
-	public function singleFieldValue( $set = null ) {
-		$name = static::field_name( '' );
-		if ( ! $name ) {
-			throw new Exception( "Called singleFieldValue() with no Name set" );
-		}
-		if ( func_num_args() ) {
-			$this()->{$name} = $set;
-
-			return $this;
-		} else {
-			return $this()->{$name};
-		}
 	}
 
 	/**
@@ -185,7 +97,7 @@ abstract class Field extends ModelExtension {
 	public function cmsFields( $mode = null ) {
 		$fields = [];
 
-		if ( static::field_name() && static::schema() ) {
+		if ( static::field_name() && static::schema() && static::show_in_cms() ) {
 			if ( $dbField = $this()->dbObject( static::field_name() ) ) {
 				try {
 					if ( $formField = $dbField->scaffoldFormField() ) {
@@ -220,6 +132,121 @@ abstract class Field extends ModelExtension {
 	}
 
 	/**
+	 * Update form fields to have:
+	 *  label, guide and description from lang.yml
+	 *  minlength, maxlength and pattern from config.validation
+	 *
+	 */
+	public function updateCMSFields( FieldList $fields ) {
+		parent::updateCMSFields( $fields);
+		if (!$this->shouldShowInCMS()) {
+			static::remove_own_fields( $fields);
+			return;
+		}
+		if (static::config()->get('admin_only')) {
+			static::remove_own_fields( $fields);
+		}
+		$allFieldsConstraints = $this->config()->get( static::ValidationRulesConfigVarName ) ?: [];
+
+		$controller = Controller::curr();
+		if ( $controller->hasExtension( 'HasMode' ) ) {
+			$mode = $controller->getMode();
+		} else {
+			$mode = '';
+		}
+
+		if ( $cmsFields = $this->cmsFields( HasMode::DefaultMode, $mode ) ) {
+			/** @var FormField $field */
+			foreach ( $cmsFields as $field ) {
+				$fieldName = $field->getName();
+
+				if ( $fieldName ) {
+					// remove any existing field with this name already added e.g. by cms scaffolding.
+					$fields->removeByName( $fieldName );
+
+					$this->addHTMLAttributes( $field );
+
+					$this->setFieldDecorations( $field );
+
+				}
+				// add any extra constraints, display-logic etc on a per-field basis
+				$this()->extend( 'customFieldConstraints', $field, $allFieldsConstraints );
+			}
+			$fields->addFieldsToTab(
+				$this->showOnCMSTab(),
+				$cmsFields
+			);
+		}
+	}
+
+	/**
+	 * @param int $testBits optional also test these bits are set and return true if all are set.
+	 *
+	 * @return int|bool
+	 */
+	protected function showAs( $testBits = null ) {
+		$showAs = static::config()->get( 'show_as' );
+		if ( ! is_null( $testBits ) ) {
+			$showAs = $this->testbits( $showAs, $testBits );
+		}
+
+		return $showAs;
+	}
+
+	/**
+	 * By default checks the config.admin_only and admin permissions to see if field should be shown.
+	 */
+	public function shouldShowInCMS( $mode = HasMode::DefaultMode ) {
+		return static::show_in_cms()
+		       && ( $this()->config()->get( 'admin_only' )
+					? \Permission::check( 'ADMIN' )
+					: true
+		       );
+	}
+
+	/**
+	 * Return the name (path) of the tab in the cms this model's fields should show under from
+	 * config.cms_tab_name in:
+	 *
+	 * this extension or if not set from
+	 * the extended model or if not set
+	 * then self.DefaultTabName.
+	 *
+	 * @return string
+	 */
+	public function showOnCMSTab() {
+		if ( $this->config()->get( 'admin_only' ) ) {
+			return static::AdminTabName;
+		}
+
+		return $this->config()->get( 'cms_tab_name' )
+			?: static::DefaultTabName;
+	}
+
+	/**
+	 * @param mixed|null $set if provided sets the value on the model for SingleFieldValue and return this, otherwise
+	 *                        returns the models SingleFieldValue.
+	 *
+	 * @return mixed
+	 * @throws Exception if Name constant is not set via late static binding
+	 * @getter-setter
+	 * @fluent-setter
+	 */
+	public function singleFieldValue( $set = null ) {
+		$name = static::field_name( '' );
+		if ( ! $name ) {
+			throw new Exception( "Called singleFieldValue() with no Name set" );
+		}
+		if ( func_num_args() ) {
+			$this()->{$name} = $set;
+
+			return $this;
+		} else {
+			return $this()->{$name};
+		}
+	}
+
+	/**
 	 * Returns the value of a field before any updates to it.
 	 *
 	 * @param null $previousValue
@@ -238,51 +265,33 @@ abstract class Field extends ModelExtension {
 	}
 
 	/**
-	 * Return the name (path) of the tab in the cms this model's fields should show under from
-	 * config.cms_tab_name in:
+	 * Return validation rules for this field as a map.
 	 *
-	 * this extension or if not set from
-	 * the extended model or if not set
-	 * then self.DefaultTabName.
+	 * @param bool|mixed $fieldNameKey  if boolean true include the field name as a key and the rules as a value,
+	 *                                  if a string then use the value as the key,
+	 *                                  otherwise is falsish so return just the rules as map
 	 *
-	 * @return string
+	 * @return array
 	 */
-	protected function cmsTab() {
-		return $this->config()->get( 'cms_tab_name' )
-			?: static::DefaultTabName;
-	}
-
-	/**
-	 * @param int $testBits optional also test these bits are set and return true if all are set.
-	 *
-	 * @return int|bool
-	 */
-	protected function showAs( $testBits = null ) {
-		$showAs = static::config()->get( 'show_as' );
-		if ( ! is_null( $testBits ) ) {
-			$showAs = $this->testbits( $showAs, $testBits );
+	public function validationRules( $fieldNameKey = false ) {
+		$rules = [
+			'min'   => $this->min(),
+			'max'   => $this->max(),
+			'regex' => $this->regex(),
+		];
+		if ( $fieldNameKey ) {
+			if ( is_bool( $fieldNameKey ) ) {
+				$rules = [
+					static::field_name() => $rules,
+				];
+			} else {
+				$rules = [
+					$fieldNameKey => $rules,
+				];
+			}
 		}
 
-		return $showAs;
-	}
-
-	/**
-	 * Return self.Name or if not set the final component of the Namespaced called class name (or the called class name if no namespace).
-	 *
-	 * @param string $suffix appended if supplied
-	 *
-	 * @return string
-	 */
-	public static function field_name( $suffix = '' ) {
-		return ( static::Name ? ( static::Name ) : current( array_reverse( explode( '\\', get_called_class() ) ) ) ) . $suffix;
-	}
-
-	public static function readonly_field_name( $suffix = 'RO' ) {
-		return static::field_name( $suffix );
-	}
-
-	protected static function previous_value_field_name() {
-		return static::PreviousFieldNamePrefix . static::field_name();
+		return $rules;
 	}
 
 	/**
@@ -346,57 +355,6 @@ abstract class Field extends ModelExtension {
 					: static::field_name()
 			);
 		}
-	}
-
-	/**
-	 * By default checks the config.admin_only and admin permissions to see if field should be shown.
-	 */
-	public function shouldShow( $mode = HasMode::DefaultMode ) {
-		return $this()->config()->get( 'admin_only' ) ? \Permission::check( 'ADMIN' ) : true;
-	}
-
-	/**
-	 * Update form fields to have:
-	 *  label, guide and description from lang.yml
-	 *  minlength, maxlength and pattern from config.validation
-	 *
-	 */
-	public function updateCMSFields( FieldList $fields ) {
-		if ( $this->shouldShow() ) {
-			return;
-		}
-		$allFieldsConstraints = $this->config()->get( static::ValidationRulesConfigVarName ) ?: [];
-
-		$controller = Controller::curr();
-		if ( $controller->hasExtension( 'HasMode' ) ) {
-			$mode = $controller->getMode();
-		} else {
-			$mode = '';
-		}
-
-		if ( $cmsFields = $this->cmsFields( HasMode::DefaultMode, $mode ) ) {
-			/** @var FormField $field */
-			foreach ( $cmsFields as $field ) {
-				$fieldName = $field->getName();
-
-				if ( $fieldName ) {
-					// remove any existing field with this name already added e.g. by cms scaffolding.
-					$fields->removeByName( $fieldName );
-
-					$this->addHTMLAttributes( $field );
-
-					$this->setFieldDecorations( $field );
-
-				}
-				// add any extra constraints, display-logic etc on a per-field basis
-				$this()->extend( 'customFieldConstraints', $field, $allFieldsConstraints );
-			}
-			$fields->addFieldsToTab(
-				$this->cmsTab(),
-				$cmsFields
-			);
-		}
-
 	}
 
 	/**
@@ -534,7 +492,7 @@ abstract class Field extends ModelExtension {
 
 				// deconstruct the constraints, use array values to allow for map or numerically indexed array
 				// TODO implement method based validation for fields
-				list( $minlength, $maxlength, $regex, $method ) = array_values($fieldConstraints);
+				list( $minlength, $maxlength, $regex, $method ) = array_values( $fieldConstraints );
 
 				$lengthType = null;
 				$length     = 0;
@@ -661,6 +619,7 @@ abstract class Field extends ModelExtension {
 	 * @param $fieldName
 	 *
 	 * @return array of [singular, plural] names or empty array if not found.
+	 * @throws \LogicException
 	 */
 	protected function labelsForRelatedClass( $fieldName ) {
 		if ( $manyMany = $this()->manyManyComponent( $fieldName ) ) {
@@ -695,6 +654,7 @@ abstract class Field extends ModelExtension {
 	 * @param bool       $showMultipleFields
 	 *
 	 * @return \DateField
+	 * @throws \InvalidArgumentException
 	 */
 	protected function configureDateField( DateField $field, $showMultipleFields = true ) {
 		if ( $showMultipleFields ) {
@@ -795,4 +755,77 @@ abstract class Field extends ModelExtension {
 			)
 		);
 	}
+
+	/**
+	 * Used to generate e.g. relationships, override Arity constant in derived classes.
+	 *
+	 * @return int
+	 */
+	public static function arity() {
+		return static::Arity;
+	}
+
+	/**
+	 * Return the schema of the remote field, e.g. 'Varchar(32)', 'Enum("a,b,c")' or 'Member'. This is set
+	 * in a Type, e.g. StringType if using modular-types or should be set in the concrete field implementation.
+	 *
+	 * @return string
+	 */
+	public static function schema() {
+		return static::Schema;
+	}
+
+	/**
+	 * Return self.Name or if not set the final component of the Namespaced called class name (or the called class name if no namespace).
+	 *
+	 * @param string $suffix appended if supplied
+	 *
+	 * @return string
+	 */
+	public static function field_name( $suffix = '' ) {
+		return ( static::Name ? ( static::Name ) : current( array_reverse( explode( '\\', get_called_class() ) ) ) ) . $suffix;
+	}
+
+	public static function readonly_field_name( $suffix = 'RO' ) {
+		return static::field_name( $suffix );
+	}
+
+	protected static function previous_value_field_name() {
+		return static::PreviousFieldNamePrefix . static::field_name();
+	}
+
+	/**
+	 * @param \FieldList $fields
+	 * @param int        $removeWhat
+	 */
+	protected static function remove_own_fields( \FieldList $fields, $removeWhat = self::RemoveAllFields ) {
+		$fields->removeByName( static::field_name() );
+		parent::remove_own_fields( $fields, $removeWhat );
+	}
+
+	public static function show_in_cms() {
+		return static::config()->get( 'show_in_cms' );
+	}
+
+	/**
+	 * a validation.min of null is not required, otherwise required if validation.min !== 0
+	 *
+	 * @return bool
+	 */
+	public static function required() {
+		return is_null( static::min() ) ? false : ( static::min() !== 0 );
+	}
+
+	public static function min() {
+		return static::get_config_setting( 'validation', 'min' );
+	}
+
+	public static function max() {
+		return static::get_config_setting( 'validation', 'max' );
+	}
+
+	public static function regex() {
+		return static::get_config_setting( 'validation', 'regex' );
+	}
+
 }
