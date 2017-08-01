@@ -796,11 +796,13 @@ abstract class Field extends ModelExtension {
 
 	/**
 	 * @param \FieldList $fields
-	 * @param int        $removeWhat
+	 * @param bool       $removeDBFields
+	 * @param bool       $removeHasOneFields
+	 *
 	 */
-	protected static function remove_own_fields( \FieldList $fields, $removeWhat = self::RemoveAllFields ) {
+	protected static function remove_own_fields( \FieldList $fields, $removeDBFields = true, $removeHasOneFields = true ) {
 		$fields->removeByName( static::field_name() );
-		parent::remove_own_fields( $fields, $removeWhat );
+		parent::remove_own_fields( $fields, $removeDBFields, $removeHasOneFields );
 	}
 
 	public static function show_in_cms() {
