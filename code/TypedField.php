@@ -1,7 +1,7 @@
 <?php
 namespace Modular;
 
-use Modular\Types\RefOneType;
+use Modular\Exceptions\TypeException;
 use Modular\Types\RefType;
 use Modular\Types\TypeInterface;
 
@@ -21,8 +21,13 @@ abstract class TypedField extends Field implements TypeInterface {
 	 * Type is defined on an Modular\Type interface the field should implement
 	 *
 	 * @return string
+	 * @throws \Modular\Exceptions\TypeException
 	 */
 	public static function type() {
+		if ( ! defined( 'static::Type' ) ) {
+			throw new TypeException("No Type" );
+		}
+
 		return static::Type;
 	}
 
@@ -30,8 +35,12 @@ abstract class TypedField extends Field implements TypeInterface {
 	 * Schema is defined on an Modular\Type interface the field should implement
 	 *
 	 * @return string
+	 * @throws \Modular\Exceptions\TypeException
 	 */
 	public static function schema() {
+		if (!defined('static::Schema')) {
+			throw new TypeException("No Schema");
+		}
 		return static::Schema;
 	}
 }
