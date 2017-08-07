@@ -12,6 +12,8 @@ class FileContentHash extends TypedField implements StringType32 {
 
 	const Name = 'FileContentHash';
 
+	private static $admin_only = true;
+
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
 

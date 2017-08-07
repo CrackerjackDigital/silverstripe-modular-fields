@@ -14,7 +14,6 @@ class ModelTag extends TypedField implements StringType {
 	use reflection;
 
 	const Name   = 'ModelTag';
-	// const Schema = 'Varchar(64)';
 
 	protected $sourceFieldName = '';
 	protected $parentIDFieldName = '';
@@ -25,6 +24,8 @@ class ModelTag extends TypedField implements StringType {
 	private static $hierarchical_tag_separator = ':';
 
 	private static $hierarchical_source_separator = ' > ';
+
+	private static $admin_only = true;
 
 	/**
 	 * ModelTag constructor can be used in config to set alternate field names as:

@@ -16,6 +16,8 @@ class FileModifiedStamp extends TypedField implements IntType {
 
 	const Name = 'FileModifiedStamp';
 
+	private static $admin_only = true;
+
 	public function hashFile($fileName = '') {
 		return static::hash_file( $fileName ?: $this()->Filename);
 	}

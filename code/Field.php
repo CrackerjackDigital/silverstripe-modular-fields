@@ -172,10 +172,18 @@ abstract class Field extends ModelExtension {
 				// add any extra constraints, display-logic etc on a per-field basis
 				$this()->extend( 'customFieldConstraints', $field, $allFieldsConstraints );
 			}
-			$fields->addFieldsToTab(
-				$this->showOnCMSTab(),
-				$cmsFields
-			);
+			if ($fields->hasTabSet()) {
+				$fields->addFieldsToTab(
+					$this->showOnCMSTab(),
+					$cmsFields
+				);
+			} else {
+				foreach ($cmsFields as $field) {
+					if ($this->shouldShowInCMS()) {
+						$fields->push( $field );
+					}
+				}
+			}
 		}
 	}
 
