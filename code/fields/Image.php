@@ -1,4 +1,5 @@
 <?php
+
 namespace Modular\Fields;
 
 use ArrayList;
@@ -13,8 +14,9 @@ use Modular\Types\ImageType;
  * @package Modular\Fields
  */
 class Image extends File implements Imagery, ImageType {
-	const Name = 'Image';
-	// const Schema = 'Image';
+	const Name   = 'Image';
+	const Type   = 'Image';
+	const Schema = 'Image';
 
 	private static $base_upload_folder = 'images';
 
@@ -26,7 +28,7 @@ class Image extends File implements Imagery, ImageType {
 	 * @return \ArrayList
 	 */
 	public function Images() {
-		return new ArrayList(array_filter([$this->Image()]));
+		return new ArrayList( array_filter( [ $this->Image() ] ) );
 	}
 
 	/**

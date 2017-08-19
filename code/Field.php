@@ -53,12 +53,12 @@ abstract class Field extends ModelExtension {
 
 	const DefaultTabName = 'Root.Main';
 
-	const AdminTabName = 'Root.AdministratorFields';
+	const AdminTabName = 'Root.Admin';
 
 	// Zend_Locale_Format compatible format string, if blank then default for locale is used
 	private static $time_field_format = '';
 
-	private static $cms_tab_name = '';
+	private static $cms_tab_name = self::DefaultTabName;
 
 	// only show this field if the user is an admin
 	private static $admin_only = false;
@@ -173,10 +173,12 @@ abstract class Field extends ModelExtension {
 				$this()->extend( 'customFieldConstraints', $field, $allFieldsConstraints );
 			}
 			if ($fields->hasTabSet()) {
-				$fields->addFieldsToTab(
-					$this->showOnCMSTab(),
-					$cmsFields
-				);
+				if ($this->shouldShowInCMS()) {
+					$fields->addFieldsToTab(
+						$this->showOnCMSTab(),
+						$cmsFields
+					);
+				}
 			} else {
 				foreach ($cmsFields as $field) {
 					if ($this->shouldShowInCMS()) {
@@ -226,9 +228,15 @@ abstract class Field extends ModelExtension {
 		if ( $this->config()->get( 'admin_only' ) ) {
 			return static::AdminTabName;
 		}
+		return static::cms_tab_name();
+	}
 
-		return $this->config()->get( 'cms_tab_name' )
-			?: static::DefaultTabName;
+	/**
+	 * Return the name of the tab this field should show on.
+	 * @return string
+	 */
+	public static function cms_tab_name() {
+		return static::config()->get( 'cms_tab_name' );
 	}
 
 	/**

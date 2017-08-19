@@ -1,4 +1,5 @@
 <?php
+
 namespace Modular\Fields;
 
 use FormField;
@@ -20,6 +21,8 @@ class File extends RefOneField implements FileType, RefOneType {
 	use upload;
 
 	const Name                    = 'File';
+	const Type                    = 'File';
+	const Schema                  = 'File';
 	const DefaultUploadFolderName = 'files';
 	const RelatedKeyField         = 'ID';
 	const RelatedDisplayField     = 'Title';
@@ -36,12 +39,13 @@ class File extends RefOneField implements FileType, RefOneType {
 	// this will be appended to 'base_upload_folder'
 	private static $upload_folder = self::DefaultUploadFolderName;
 
-
 	/**
 	 * Add upload field.
+	 *
 	 * @param null $mode
 	 *
 	 * @return array
+	 * @throws \Exception
 	 */
 	public function cmsField( $mode = null ) {
 		return [
@@ -81,6 +85,5 @@ class File extends RefOneField implements FileType, RefOneType {
 	public static function options() {
 		return \DataObject::get( static::schema() )->map( static::RelatedKeyField, static::RelatedDisplayField )->toArray();
 	}
-
 
 }

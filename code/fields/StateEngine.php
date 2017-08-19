@@ -57,6 +57,7 @@ abstract class StateEngineField extends Enum {
 	private static $ready_states = [];
 
 	// these should be set to the states that represent the task is running at the moment
+	// or busy doing something so can't be changed
 	private static $running_states = [];
 
 	/**
@@ -127,23 +128,28 @@ abstract class StateEngineField extends Enum {
 	 * @return array
 	 * @throws \InvalidArgumentException
 	 */
-	public function cmsField( $mode = null ) {
+	public function cmsFields( $mode = null ) {
 		$updatedBy     = \Member::get()->byID( $this()->{static::updated_by_field_name()} ) ?: \Member::currentUser();
 		$updatedByName = $updatedBy
-			? ( $updatedBy->FirstName . ' ' . $updatedBy->Surname . ' (' . $updatedBy->Email . ')' ) : 'Unknown';
+			? ( $updatedBy->FirstName . ' ' . $updatedBy->Surname . ' (' . $updatedBy->Email . ')' )
+			: 'Unknown';
 
 		$initiatedBy     = \Member::get()->byID( $this()->{static::initiated_by_field_name()} ) ?: \Member::currentUser();
 		$initiatedByName = $initiatedBy
-			? ( $initiatedBy->FirstName . ' ' . $initiatedBy->Surname . ' (' . $initiatedBy->Email . ')' ) : 'Unknown';
+			? ( $initiatedBy->FirstName . ' ' . $initiatedBy->Surname . ' (' . $initiatedBy->Email . ')' )
+			: 'Unknown';
 
 		$watcherEmails = $this->watcherEmails();
 
-		return array_merge( parent::cmsFields( $mode ), [
-			static::updated_date_field_name()       => $this->configureDateTimeField( new \DatetimeField( static::updated_date_field_name() ) ),
-			static::initiated_by_field_name( 'RO' ) => new \ReadonlyField( static::initiated_by_field_name( 'RO' ), 'Initiated By', $initiatedByName ),
-			static::updated_by_field_name( 'RO' )   => new \ReadonlyField( static::updated_by_field_name( 'RO' ), 'Updated By', $updatedByName ),
-			static::watcher_email_field_name()      => new \EmailField( static::watcher_email_field_name(), 'Watcher Email', current( $watcherEmails ) ),
-		] );
+		return array_merge(
+			parent::cmsFields( $mode ),
+			[
+				static::updated_by_field_name() => new \ReadonlyField( static::updated_by_field_name('ID'), 'Updated By', $updatedByName ),
+				static::updated_date_field_name() => $this->configureDateTimeField( new \DatetimeField( static::updated_date_field_name() ) ),
+				static::initiated_by_field_name()  => new \ReadonlyField( static::initiated_by_field_name('ID'), 'Initiated By', $initiatedByName ),
+				static::watcher_email_field_name() => new \EmailField( static::watcher_email_field_name(), 'Watcher Email', current( $watcherEmails ) ),
+			]
+		);
 	}
 
 	/**
@@ -208,7 +214,7 @@ abstract class StateEngineField extends Enum {
 	 * @throws null
 	 */
 	public function checkStateChange( $event, $fromState, $toState ) {
-		if ($this->config()->get('check_state_transitions')) {
+		if ( $this->config()->get( 'check_state_transitions' ) ) {
 
 			$fieldName = get_class( $this );
 
@@ -243,7 +249,7 @@ abstract class StateEngineField extends Enum {
 				$this->debug_fail( $e );
 			}
 		}
-		if ($this->config()->get('notify_state_transitions')) {
+		if ( $this->config()->get( 'notify_state_transitions' ) ) {
 			if ( $emails = $this->config()->get( 'notify_on_state_events' ) ) {
 				if ( isset( $emails[ $toState ] ) ) {
 					$actionOrEmailAddress = '';
@@ -259,6 +265,7 @@ abstract class StateEngineField extends Enum {
 				}
 			}
 		}
+
 		return true;
 	}
 
@@ -272,7 +279,7 @@ abstract class StateEngineField extends Enum {
 	 * @throws null
 	 */
 	public function sendStateChangeNotification( $event, $fromState, $toState, $actionOrRecipientEmailAddress ) {
-		if ($actionOrRecipientEmailAddress) {
+		if ( $actionOrRecipientEmailAddress ) {
 
 			// e.g. 'JobStatus_Changed_Queued_Cancelled' or 'JobStatus_Changing_Running'
 			$fieldClass  = get_class( $this );
@@ -318,10 +325,10 @@ abstract class StateEngineField extends Enum {
 				if ( $this->testbits( $actionOrRecipientEmailAddress, self::NotifyEmailUpdater ) && $updatedBy ) {
 					$this->send( $sender, $updatedBy->Email, $subject, $noTemplateBody, $templates, $data );
 				}
-			} elseif (is_string($actionOrRecipientEmailAddress)) {
+			} elseif ( is_string( $actionOrRecipientEmailAddress ) ) {
 				$this->send( $sender, $actionOrRecipientEmailAddress, $subject, $noTemplateBody, $templates, $data );
 			} else {
-				throw new \InvalidArgumentException("Invalid notification recipient");
+				throw new \InvalidArgumentException( "Invalid notification recipient" );
 			}
 		}
 
