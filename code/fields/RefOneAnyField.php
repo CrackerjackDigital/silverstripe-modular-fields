@@ -15,7 +15,7 @@ abstract class RefOneAnyField extends RefOneField {
 
 		$fields[ static::field_name( '' ) ] = $field;
 
-		return $fields;
+		return [];
 	}
 
 	/**
