@@ -1,7 +1,6 @@
 <?php
 namespace Modular\Fields;
 
-use Modular\Interfaces\Action;
 use Modular\TypedField;
 use Modular\Types\StringType;
 
