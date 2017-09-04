@@ -6,6 +6,7 @@ use Modular\Types\RefOneType;
 
 class RefOneField extends TypedField implements RefOneType {
 	const IDFieldSuffix = 'ID';
+
 	/**
 	 * Add has_one relationships to related class.
 	 *
@@ -13,6 +14,7 @@ class RefOneField extends TypedField implements RefOneType {
 	 * @param null $extension
 	 *
 	 * @return mixed
+	 * @throws \Modular\Exceptions\TypeException
 	 */
 	public function extraStatics( $class = null, $extension = null ) {
 		return array_merge_recursive(
@@ -28,7 +30,7 @@ class RefOneField extends TypedField implements RefOneType {
 	/**
 	 * Return self.Name or if not set the final component of the Namespaced called class name (or the called class name if no namespace).
 	 *
-	 * In RefOneField type the suffix defaults to 'ID'
+	 * In RefOneField (this) type the suffix defaults to 'ID' so we get back a '<Name>ID'
 	 *
 	 * @param string $suffix appended if supplied
 	 *
@@ -53,6 +55,7 @@ class RefOneField extends TypedField implements RefOneType {
 	 * Return unadorned has_one related class name.
 	 *
 	 * @return string
+	 * @throws \Modular\Exceptions\TypeException
 	 */
 	public static function related_class_name() {
 		return static::schema();
