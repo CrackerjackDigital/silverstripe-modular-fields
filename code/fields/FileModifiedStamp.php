@@ -5,6 +5,7 @@ namespace Modular\Fields;
  * Add to a File to track the last modified time (in unix time) of a file e.g. from filemtime() call.
  */
 
+use FieldList;
 use Modular\Traits\file_changed;
 use Modular\Traits\md5;
 use Modular\TypedField;
@@ -31,6 +32,18 @@ class FileModifiedStamp extends TypedField implements IntType {
 			if ( file_exists( $fullPathName ) ) {
 				$this()->{static::Name} = filemtime( $fullPathName );
 			}
+		}
+	}
+
+	public function updateCMSFields( FieldList $fields ) {
+		parent::updateCMSFields( $fields );
+		if ( $this->owner->ID && \Permission::check( 'ADMIN' ) && $fields->hasTabSet() ) {
+			$fields->addFieldToTab(
+				'Root.Admin',
+				new \TextField( self::Name )
+			);
+		} else {
+			$fields->removeByName( self::Name );
 		}
 	}
 }

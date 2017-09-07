@@ -2,6 +2,7 @@
 namespace Modular\Fields;
 
 use DataList;
+use FieldList;
 use Modular\Traits\reflection;
 use Modular\TypedField;
 use Modular\Types\StringType;
@@ -41,6 +42,18 @@ class ModelTag extends TypedField implements StringType {
 		$this->parentIDFieldName = $parentIDFieldName;
 		$this->fallbackFieldName = $fallbackFieldName;
 		parent::__construct();
+	}
+
+	public function updateCMSFields( FieldList $fields ) {
+		parent::updateCMSFields( $fields );
+		if ( \Permission::check( 'ADMIN' ) && $fields->hasTabSet()) {
+			$fields->addFieldToTab(
+				'Root.Admin',
+				new \TextField( self::Name )
+			);
+		} else {
+			$fields->removeByName( self::Name );
+		}
 	}
 
 	public function fieldDecorationTokens() {
