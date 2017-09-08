@@ -1,23 +1,27 @@
 <?php
+
 namespace Modular\Fields;
 
 use DisplayLogicWrapper;
+use SiteTree;
 use TreeDropdownField;
 
-class InternalLink extends \Modular\TypedField {
+/**
+ * InternalLink is a link to a page on the site
+ *
+ * @package Modular\Fields
+ */
+class InternalLink extends RefOneField {
 	const InternalLinkOption    = 'InternalLink';
 	const InternalLinkFieldName = 'InternalLinkID';
-	const Name      = 'InternalLink';
+	const Name                  = 'InternalLink';
+	const Schema                = SiteTree::class;
 
-	private static $has_one = [
-		self::Name => 'SiteTree',
-	];
-
-	public function cmsField($mode = null) {
+	public function cmsField( $mode = null ) {
 		return [
-			(new DisplayLogicWrapper(
-				new TreeDropdownField(self::InternalLinkFieldName, 'Link to', 'SiteTree')
-			))->setName(self::InternalLinkFieldName)->setID(self::InternalLinkFieldName),
+			( new DisplayLogicWrapper(
+				new TreeDropdownField( self::InternalLinkFieldName, 'Link to', SiteTree::class)
+			) )->setName( self::InternalLinkFieldName )->setID( self::InternalLinkFieldName ),
 		];
 	}
 }
