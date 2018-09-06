@@ -38,5 +38,10 @@
 	"extra": {
 		"installer-name": "modular-fields"
 	},
+	"autoload": {
+		"files": [
+			"autoloader.php"
+		]
+	},
 	"minimum-stability": "dev"
 }
